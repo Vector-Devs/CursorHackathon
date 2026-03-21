@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, BarChart3, Factory, Truck, TriangleAlert, Settings } from 'lucide-react';
+import { Home, BarChart3, Factory, Truck, TriangleAlert, Package, Settings } from 'lucide-react';
 
 const navItems = [
   { icon: Home, label: 'Dashboard', to: '/' },
@@ -7,6 +7,7 @@ const navItems = [
   { icon: Factory, label: 'Plants', to: '/plants' },
   { icon: Truck, label: 'Suppliers', to: '/suppliers' },
   { icon: TriangleAlert, label: 'Disruptions', to: '/disruptions' },
+  { icon: Package, label: 'Shipments', to: '/shipments' },
   { icon: Settings, label: 'Settings', to: '/settings' },
 ];
 
