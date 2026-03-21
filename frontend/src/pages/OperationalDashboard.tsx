@@ -1,5 +1,5 @@
 import { useAsync } from '../hooks/useAsync';
-import { enterpriseApi, simulationApi } from '../api/client';
+import { enterpriseApi, SIMULATION_REPORT_POLL_MS, simulationApi } from '../api/client';
 import { Layout } from '../components/Layout';
 import { HeaderBar } from '../components/HeaderBar';
 import { KPICard } from '../components/KPICard';
@@ -15,19 +15,27 @@ function countExposed(report: SupplyChainRiskReportResponse | null | undefined):
 }
 
 export function OperationalDashboard() {
-  const { data, loading, error } = useAsync(async () => {
-    const [plants, suppliers, risk] = await Promise.all([
+  const { data: staticData, loading: loadingStatic, error: errStatic } = useAsync(async () => {
+    const [plants, suppliers] = await Promise.all([
       enterpriseApi.listPlants(),
       enterpriseApi.listSuppliers(),
-      simulationApi.supplyChainRiskReport(),
     ]);
-    return { plants, suppliers, risk };
+    return { plants, suppliers };
   }, []);
 
-  const plantCount = data?.plants.length ?? 0;
-  const supplierCount = data?.suppliers.length ?? 0;
-  const exposed = data?.risk ? countExposed(data.risk) : 0;
-  const portfolioRisk = data?.risk?.portfolioRiskScore ?? 0;
+  const { data: risk, loading: loadingRisk, error: riskError } = useAsync(
+    () => simulationApi.supplyChainRiskReport(),
+    [],
+    { pollIntervalMs: SIMULATION_REPORT_POLL_MS }
+  );
+
+  const loading = loadingStatic || (loadingRisk && risk == null);
+  const error = errStatic ?? riskError;
+
+  const plantCount = staticData?.plants.length ?? 0;
+  const supplierCount = staticData?.suppliers.length ?? 0;
+  const exposed = risk ? countExposed(risk) : 0;
+  const portfolioRisk = risk?.portfolioRiskScore ?? 0;
   const healthPct = Math.max(0, Math.min(100, (1 - Math.min(portfolioRisk, 1)) * 100));
 
   return (
@@ -101,7 +109,7 @@ export function OperationalDashboard() {
           }}
         >
           <SupplyNetworkMap />
-          <DisruptionsPanel />
+          <DisruptionsPanel report={risk} loading={loadingRisk && risk == null} error={riskError} />
         </div>
       </div>
     </Layout>

@@ -178,6 +178,8 @@ This folder holds **Spring Boot agents** that sit on top of the shared mock APIs
 
 **Mock service base URL (default):** `http://localhost:8082` — see `mockServices/src/main/resources/application.properties`. Large mock datasets (`mock_articles.json`, `mock_places.json`, `mock_vessels.json`) can be regenerated from the repository root with:
 
+**Articles API:** `POST /api/v1/article/getArticles` returns the same JSON shape as `mock_articles.json`, but each response **mutates** titles, bodies, timestamps, sentiment, and relevance using **slow drift plus gentle per-second motion** so rapid polling shows gradual change. Places and vessels remain static JSON unless you regenerate files.
+
 ```bash
 python3 mockServices/scripts/generate_mock_data.py
 ```
@@ -282,6 +284,14 @@ cd agents/news-agent && mvn spring-boot:run
 | `server.port` | `8090` | Agent port |
 | `agent.classification.min-score` | `0.12` | Reserved for future filtering (ranking uses top scores regardless) |
 | `agent.classification.max-categories-per-article` | `4` | Cap on how many top-scoring categories are returned (up to **4**) |
+| `agent.schedule.enabled` | `true` | When `true`, runs the same pipeline as `/classified-news` on a timer (keeps mock news pulled regularly for downstream agents). |
+| `agent.schedule.initial-delay-ms` | `3000` | Delay after startup before the first scheduled run (demo-friendly). |
+| `agent.schedule.fixed-delay-ms` | `15000` | Delay after each run **finishes** before the next (default **15 seconds** for demos). |
+| `agent.pipeline.enabled` | `true` | After each scheduled run, **GET** reasoning-agent `/api/agent/reasoning-report` then **GET** supply-chain-risk `/api/agent/supply-chain-risk-report` so reasoning → simulation (and the UI) stay warm. |
+| `agent.pipeline.reasoning-base-url` | `http://localhost:8093` | Reasoning agent base URL for the cascade. |
+| `agent.pipeline.simulation-base-url` | `http://localhost:8094` | Supply-chain-risk (simulation) agent base URL. |
+| `agent.pipeline.connect-timeout-ms` | `10000` | HTTP connect timeout for cascade GETs. |
+| `agent.pipeline.read-timeout-ms` | `120000` | HTTP read timeout for cascade GETs (simulation can be slow). |
 
 ### HTTP API
 
@@ -525,6 +535,7 @@ cd agents/supply-chain-risk-agent && mvn spring-boot:run
 | `supplychain-risk.reasoning-base-url` | `http://localhost:8093` | Reasoning agent |
 | `supplychain-risk.proximity-radius-km` | `500` | Great-circle distance threshold for “near” a news location |
 | `supplychain-risk.http-timeout-ms` | `120000` | RestClient read/connect budget |
+| `supplychain-risk.cache-ttl-ms` | `1000` | When &gt; `0`, repeat `GET` with the same `radiusNm` returns the last report for this many ms (faster UI after the news-agent pipeline refresh). Set `0` to disable. |
 | `server.port` | `8094` | This agent |
 
 ### HTTP API

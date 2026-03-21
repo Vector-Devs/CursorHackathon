@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class SupplyChainRiskService {
@@ -18,6 +19,11 @@ public class SupplyChainRiskService {
     private final ReasoningClient reasoningClient;
     private final SupplyChainRiskAnalyzer analyzer;
     private final SupplyChainRiskProperties properties;
+
+    private volatile ReportCache cache;
+
+    private record ReportCache(Double radiusNm, long atMs, SupplyChainRiskReportResponse report) {
+    }
 
     public SupplyChainRiskService(
             EnterpriseClient enterpriseClient,
@@ -32,6 +38,16 @@ public class SupplyChainRiskService {
     }
 
     public SupplyChainRiskReportResponse buildReport(Double radiusNm) {
+        int ttlMs = properties.cacheTtlMs();
+        if (ttlMs > 0) {
+            ReportCache c = cache;
+            if (c != null
+                    && Objects.equals(c.radiusNm(), radiusNm)
+                    && System.currentTimeMillis() - c.atMs() < ttlMs) {
+                return c.report();
+            }
+        }
+
         ReasoningReportResponse reasoning = reasoningClient.fetchReasoningReport(radiusNm);
         List<EnterprisePlantDto> summaries = enterpriseClient.listPlants();
         if (summaries == null) {
@@ -44,6 +60,10 @@ public class SupplyChainRiskService {
             }
             details.add(enterpriseClient.getPlant(p.id()));
         }
-        return analyzer.analyze(details, reasoning, properties.proximityRadiusKm());
+        SupplyChainRiskReportResponse report = analyzer.analyze(details, reasoning, properties.proximityRadiusKm());
+        if (ttlMs > 0) {
+            cache = new ReportCache(radiusNm, System.currentTimeMillis(), report);
+        }
+        return report;
     }
 }

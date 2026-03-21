@@ -1,7 +1,5 @@
 import { CircleAlert, TriangleAlert, Info } from 'lucide-react';
-import { useAsync } from '../hooks/useAsync';
-import { simulationApi } from '../api/client';
-import type { PlantSupplyRiskDto } from '../api/types';
+import type { PlantSupplyRiskDto, SupplyChainRiskReportResponse } from '../api/types';
 
 function severityIcon(score: number) {
   if (score >= 0.5) return { Icon: CircleAlert, sev: 'P1' as const, border: 'var(--error)', bg: '#EF444408', ic: 'var(--error)' };
@@ -16,9 +14,13 @@ function topRisks(plants: PlantSupplyRiskDto[]): PlantSupplyRiskDto[] {
     .slice(0, 5);
 }
 
-export function DisruptionsPanel() {
-  const { data: report, loading, error } = useAsync(() => simulationApi.supplyChainRiskReport(), []);
+export type DisruptionsPanelProps = {
+  report: SupplyChainRiskReportResponse | null;
+  loading: boolean;
+  error: string | null;
+};
 
+export function DisruptionsPanel({ report, loading, error }: DisruptionsPanelProps) {
   const rows = report ? topRisks(report.plants ?? []) : [];
   const badgeCount = rows.length;
 

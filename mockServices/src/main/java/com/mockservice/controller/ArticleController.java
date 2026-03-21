@@ -1,26 +1,26 @@
 package com.mockservice.controller;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
+import com.mockservice.service.MockArticlesDynamicService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/api/v1/article")
 public class ArticleController {
 
-    @Value("classpath:mock_articles.json")
-    private Resource mockArticlesResource;
+    private final MockArticlesDynamicService dynamicArticles;
 
+    public ArticleController(MockArticlesDynamicService dynamicArticles) {
+        this.dynamicArticles = dynamicArticles;
+    }
+
+    /**
+     * Returns the same schema as {@code mock_articles.json}, with titles/bodies/timestamps/sentiment
+     * adjusted on each call so demos can poll every second and see gradual change.
+     */
     @PostMapping(value = "/getArticles", produces = "application/json")
     public String getArticles() throws Exception {
-        if (mockArticlesResource.exists()) {
-            return new String(mockArticlesResource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-        } else {
-            throw new IllegalStateException("mock_articles.json not found in classpath");
-        }
+        return dynamicArticles.buildJsonResponse();
     }
 }

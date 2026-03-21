@@ -1,7 +1,7 @@
 import { Filter, FileDown } from 'lucide-react';
 import { useMemo } from 'react';
 import { useAsync } from '../hooks/useAsync';
-import { enterpriseApi, simulationApi } from '../api/client';
+import { enterpriseApi, SIMULATION_REPORT_POLL_MS, simulationApi } from '../api/client';
 import type { PlantSupplyRiskDto, SupplyChainRiskReportResponse } from '../api/types';
 import { Layout } from '../components/Layout';
 import { HeaderBar } from '../components/HeaderBar';
@@ -57,15 +57,19 @@ function articleSignalsFromSimulation(risk: SupplyChainRiskReportResponse | null
 }
 
 export function Disruptions() {
-  const { data, loading, error } = useAsync(async () => {
-    const [risk, enterprisePlants] = await Promise.all([
-      simulationApi.supplyChainRiskReport(),
-      enterpriseApi.listPlants(),
-    ]);
-    return { risk, enterprisePlantTotal: enterprisePlants.length };
-  }, []);
+  const { data: enterprisePlants, loading: loadingPlants, error: plantsError } = useAsync(
+    () => enterpriseApi.listPlants(),
+    []
+  );
+  const { data: risk, loading: loadingRisk, error: riskError } = useAsync(
+    () => simulationApi.supplyChainRiskReport(),
+    [],
+    { pollIntervalMs: SIMULATION_REPORT_POLL_MS }
+  );
 
-  const risk = data?.risk;
+  const loading = loadingPlants || (loadingRisk && risk == null);
+  const error = plantsError ?? riskError;
+  const enterprisePlantTotal = enterprisePlants?.length ?? 0;
   const plants = risk?.plants ?? [];
   const { critical, high, medium } = bucketPlants(plants);
   const activeSignals = plants.filter(
@@ -153,7 +157,7 @@ export function Disruptions() {
         >
           <KPICard
             label="TOTAL PLANTS (ENTERPRISE)"
-            value={loading ? '…' : data?.enterprisePlantTotal ?? 0}
+            value={loading ? '…' : enterprisePlantTotal}
             valueColor="primary"
             subtext="GET /api/v1/plants"
             subtextColor="primary"

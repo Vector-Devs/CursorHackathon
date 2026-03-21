@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useAsync } from '../hooks/useAsync';
-import { enterpriseApi, simulationApi } from '../api/client';
+import { enterpriseApi, SIMULATION_REPORT_POLL_MS, simulationApi } from '../api/client';
 import { Layout } from '../components/Layout';
 import { HeaderBar } from '../components/HeaderBar';
 import { KPICard } from '../components/KPICard';
@@ -18,16 +18,19 @@ function badgeForRisk(r: number): { badge: string; badgeColor: string } {
 export function PredictionsSimulation() {
   const [mode, setMode] = useState<'real' | 'simulation'>('real');
 
-  const { data, loading, error } = useAsync(async () => {
-    const [risk, enterprisePlants] = await Promise.all([
-      simulationApi.supplyChainRiskReport(),
-      enterpriseApi.listPlants(),
-    ]);
-    return { risk, enterprisePlantTotal: enterprisePlants.length };
-  }, []);
+  const { data: enterprisePlants, loading: loadingPlants, error: plantsError } = useAsync(
+    () => enterpriseApi.listPlants(),
+    []
+  );
+  const { data: risk, loading: loadingRisk, error: riskError } = useAsync(
+    () => simulationApi.supplyChainRiskReport(),
+    [],
+    { pollIntervalMs: SIMULATION_REPORT_POLL_MS }
+  );
 
-  const risk = data?.risk;
-  const enterprisePlantTotal = data?.enterprisePlantTotal ?? 0;
+  const loading = loadingPlants || (loadingRisk && risk == null);
+  const error = plantsError ?? riskError;
+  const enterprisePlantTotal = enterprisePlants?.length ?? 0;
 
   const cards = useMemo(() => {
     const plants = risk?.plants ?? [];
