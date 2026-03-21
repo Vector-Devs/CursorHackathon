@@ -9,11 +9,32 @@ services:
       - PORT=8080
       - API_BACKEND_URL=http://enterpriseservice:8085
 
+  location-service:
+    build:
+      context: ./agents/location-service
+      dockerfile: Dockerfile
+    ports:
+      - "8095:8095"
+    depends_on:
+      - mockservices
+      - enterpriseservice
+    environment:
+      - ENTERPRISE_SERVICE_URL=http://enterpriseservice:8085
+      - MOCK_SERVICES_URL=http://mockservices:8082
+
+  mockservices:
+    build:
+      context: ./mockServices
+      dockerfile: Dockerfile
+    # Internal only - no ports exposed
+
   enterpriseservice:
     build:
       context: ./enterpriseservice
       dockerfile: Dockerfile
     ports:
       - "8085:8085"
+    depends_on:
+      - mockservices
     environment:
-      - MOCK_SERVICES_BASE_URL=http://host.docker.internal:8082
+      - MOCK_SERVICES_BASE_URL=http://mockservices:8082
