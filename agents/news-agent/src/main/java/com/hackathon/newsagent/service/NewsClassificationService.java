@@ -24,7 +24,8 @@ public class NewsClassificationService {
 
 	private static final Logger log = LoggerFactory.getLogger(NewsClassificationService.class);
 
-	private static final Pattern DISPATCH_SUFFIX = Pattern.compile("\\s*[—\\-]\\s*dispatch\\s+\\d+\\s*$", Pattern.CASE_INSENSITIVE);
+	private static final Pattern DISPATCH_SUFFIX = Pattern.compile("\\s*[—\\-]\\s*dispatch\\s+\\d+\\s*", Pattern.CASE_INSENSITIVE);
+	private static final Pattern DEMO_SUFFIX = Pattern.compile("\\s*\\[demo\\s+[\\d.]+\\]\\s*$");
 
 	private static final List<String> KNOWN_LOCATIONS = List.of(
 			"Singapore", "Rotterdam", "Shanghai", "Hong Kong", "Busan", "Hamburg", "Antwerp",
@@ -117,7 +118,9 @@ public class NewsClassificationService {
 
 	private String stripDispatchSuffix(String title) {
 		if (title == null || title.isBlank()) return title;
-		return DISPATCH_SUFFIX.matcher(title).replaceAll("").trim();
+		String cleaned = DEMO_SUFFIX.matcher(title).replaceAll("");
+		cleaned = DISPATCH_SUFFIX.matcher(cleaned).replaceAll("");
+		return cleaned.trim();
 	}
 
 	private List<String> extractLocationsFromBody(String body) {
