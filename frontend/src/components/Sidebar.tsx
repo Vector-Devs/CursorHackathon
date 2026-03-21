@@ -50,7 +50,7 @@ export function Sidebar() {
         </span>
       </div>
 
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minHeight: 0 }}>
         {navItems.map(({ icon: Icon, label, to }) => (
           <NavLink
             key={to}
@@ -89,6 +89,47 @@ export function Sidebar() {
           </NavLink>
         ))}
       </nav>
+      <div
+        style={{
+          paddingTop: 16,
+          borderTop: '1px solid var(--border)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+        }}
+      >
+        <span
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 9,
+            fontWeight: 600,
+            letterSpacing: 1.5,
+            color: 'var(--text-tertiary)',
+          }}
+        >
+          AI ENGINE STATUS
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: 'var(--success)',
+            }}
+          />
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 10,
+              fontWeight: 500,
+              color: 'var(--success)',
+            }}
+          >
+            Online - Model v3.2.1
+          </span>
+        </div>
+      </div>
     </aside>
   );
 }

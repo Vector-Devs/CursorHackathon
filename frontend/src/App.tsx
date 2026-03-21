@@ -3,6 +3,7 @@ import { OperationalDashboard } from './pages/OperationalDashboard';
 import { PredictionsSimulation } from './pages/PredictionsSimulation';
 import { Plants } from './pages/Plants';
 import { Suppliers } from './pages/Suppliers';
+import { Disruptions } from './pages/Disruptions';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 
 function App() {
@@ -13,7 +14,7 @@ function App() {
         <Route path="/predictions" element={<PredictionsSimulation />} />
         <Route path="/plants" element={<Plants />} />
         <Route path="/suppliers" element={<Suppliers />} />
-        <Route path="/disruptions" element={<PlaceholderPage title="DISRUPTIONS" />} />
+        <Route path="/disruptions" element={<Disruptions />} />
         <Route path="/settings" element={<PlaceholderPage title="SETTINGS" />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

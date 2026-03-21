@@ -1,18 +1,26 @@
+import type { ReactNode } from 'react';
+
 interface KPICardProps {
   label: string;
-  value: string | number;
-  valueColor?: 'primary' | 'success' | 'error';
+  value: string | number | ReactNode;
+  valueColor?: 'primary' | 'success' | 'error' | 'warning' | 'info';
+  subtext?: string;
+  subtextColor?: 'primary' | 'success' | 'error' | 'warning' | 'info';
 }
 
 export function KPICard({
   label,
   value,
   valueColor = 'primary',
-}: KPICardProps) {
+  subtext,
+  subtextColor = 'primary',
+}: Readonly<KPICardProps>) {
   const colorMap = {
     primary: 'var(--text-primary)',
     success: 'var(--success)',
     error: 'var(--error)',
+    warning: 'var(--warning)',
+    info: 'var(--info)',
   };
 
   return (
@@ -49,6 +57,18 @@ export function KPICard({
       >
         {value}
       </span>
+      {subtext && (
+        <span
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 11,
+            fontWeight: 500,
+            color: colorMap[subtextColor],
+          }}
+        >
+          {subtext}
+        </span>
+      )}
     </div>
   );
 }
