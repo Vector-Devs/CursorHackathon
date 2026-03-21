@@ -50,7 +50,11 @@ function MapBounds() {
   return null;
 }
 
-export function WorldMap() {
+interface WorldMapProps {
+  title?: string;
+}
+
+export function WorldMap({ title = 'PREDICTION SIMULATION MAP' }: WorldMapProps) {
   return (
     <div
       style={{
@@ -81,7 +85,7 @@ export function WorldMap() {
             color: 'var(--text-tertiary)',
           }}
         >
-          PREDICTION SIMULATION MAP
+          {title}
         </span>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
