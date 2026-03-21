@@ -2,6 +2,8 @@
 
 This folder holds **Spring Boot agents** that sit on top of the shared mock APIs in [`../mockServices`](../mockServices) (`mockServices`). Each agent calls HTTP endpoints on the mock service and exposes its own JSON API.
 
+**Deployment:** The repo root includes an SAP **MTA** descriptor — [`../mta.yaml`](../mta.yaml) and [`../MTA.md`](../MTA.md) (build with `mbt build` → `.mtar`).
+
 **Mock service base URL (default):** `http://localhost:8082` — see `mockServices/src/main/resources/application.properties`. Large mock datasets (`mock_articles.json`, `mock_places.json`, `mock_vessels.json`) can be regenerated from the repository root with:
 
 ```bash
@@ -43,26 +45,30 @@ cd mockServices && mvn spring-boot:run
 
 | Port | Process |
 |------|---------|
-| **8081** | [`enterpriseservice`](../enterpriseservice) (plants, suppliers, shipments — in-memory H2) |
 | **8082** | `mockServices` (news, places catalog, vessels, places-by-area, …) |
+| **8085** | [`enterpriseservice`](../enterpriseservice) (plants, suppliers, shipments — in-memory H2) |
 | **8090** | news-agent |
 | **8091** | locations-agent |
 | **8092** | vessel-agent |
 | **8093** | reasoning-agent |
 | **8094** | supply-chain-risk-agent |
+| **5173** | [`reasoning-ui`](../reasoning-ui) (Vite dev server; proxies `/api` → reasoning) |
 
-Start each agent you need in **separate terminals**. **reasoning-agent** depends on **mockServices** plus **news-agent**, **locations-agent**, and **vessel-agent** all being up before it. **supply-chain-risk-agent** additionally needs **[`enterpriseservice`](../enterpriseservice)** on **8081** and **reasoning-agent** on **8093**.
+Start each agent you need in **separate terminals**. **reasoning-agent** depends on **mockServices** plus **news-agent**, **locations-agent**, and **vessel-agent** all being up before it. **supply-chain-risk-agent** additionally needs **[`enterpriseservice`](../enterpriseservice)** on **8085** and **reasoning-agent** on **8093**.
 
 ### Run the full stack (smoke test)
 
-In five terminals from the repo root (after **8082** is healthy, e.g. `curl -sf http://localhost:8082/api/v1/places`):
+Use **separate terminals** from the repo root. Start **mockServices** first; wait until **8082** is healthy (e.g. `curl -sf http://localhost:8082/api/v1/places`). Then start **news**, **locations**, **vessel**, **reasoning**. For the **supply-chain** UI panel, also start **enterpriseservice** (8085) and **supply-chain-risk-agent** (8094).
 
 ```bash
 cd mockServices && mvn spring-boot:run
+cd enterpriseservice && mvn spring-boot:run
 cd agents/news-agent && mvn spring-boot:run
 cd agents/locations-agent && mvn spring-boot:run
 cd agents/vessel-agent && mvn spring-boot:run
 cd agents/reasoning-agent && mvn spring-boot:run
+cd agents/supply-chain-risk-agent && mvn spring-boot:run
+cd reasoning-ui && npm install && npm run dev
 ```
 
 Quick checks:
@@ -320,11 +326,15 @@ Combines **[`enterpriseservice`](../enterpriseservice)** master data with the **
 2. **`GET /api/agent/reasoning-report`** on reasoning-agent (optional **`?radiusNm=`**, forwarded as-is).
 3. **Risk model:** for each reasoning article, takes the **max per-category `riskFactor`** from `categoryRisks`. A plant or supplier is **exposed** if a resolved news location is within **`supplychain-risk.proximity-radius-km`** (default **500 km**) of its lat/lon, or if **catalog mentions** / resolved place **text** overlaps the plant or supplier name/location. **Plant risk** is the max exposure score across the plant site and its suppliers; **portfolio risk** is the max across plants.
 
-Returns JSON: **`portfolioRiskScore`**, **`portfolioRationale`**, **`plants[]`** with per-supplier **`riskScore`** and **`signals`**.
+4. **Disturbance certainty:** for each exposed site, blends that **category risk** with **maritime imminence** from `vesselsNearLocations`: shortest **ETA (hours)** = great-circle distance from each vessel position to the site ÷ speed (**kn** → km/h, with a heuristic for mock speeds stored as tenths of knots). **Imminence** rises as ETA shortens (48 h half-life). **Disturbance certainty** ≈ `risk × (0.55 + 0.45 × imminence)` (capped at 1). Without vessel speed/position, imminence falls back to a weaker signal from vessel presence alone.
+
+Returns JSON: **`portfolioRiskScore`**, **`portfolioDisturbanceCertainty`**, **`portfolioDisturbanceRationale`**, **`portfolioEstimatedHoursToImpact`**, **`portfolioRationale`**, **`plants[]`** with per-plant and per-supplier **`disturbanceCertainty`**, **`estimatedHoursToImpact`**, **`riskScore`**, and **`signals`**.
+
+**reasoning-ui** in dev uses **same-origin** `/api/...` and the Vite proxy: **`/api/agent/supply-chain-risk-report` → 8094** (listed **before** `/api` → 8093 so the longer path matches first). `vite preview` has no proxy — set **`VITE_SUPPLY_RISK_BASE=http://localhost:8094`** at build, or rely on the UI fallback to 8094 for localhost:4173 (CORS on the agent). **`VITE_SUPPLY_RISK_BASE`** overrides the base URL when set.
 
 ### Run
 
-Requires **8081** (enterprise) and **8093** (reasoning), with reasoning’s upstream stack running.
+Requires **8085** (enterprise) and **8093** (reasoning), with reasoning’s upstream stack running.
 
 ```bash
 cd agents/supply-chain-risk-agent && mvn spring-boot:run
@@ -334,7 +344,7 @@ cd agents/supply-chain-risk-agent && mvn spring-boot:run
 
 | Property | Default | Purpose |
 |----------|---------|---------|
-| `supplychain-risk.enterprise-base-url` | `http://localhost:8081` | Enterprise service |
+| `supplychain-risk.enterprise-base-url` | `http://localhost:8085` | Enterprise service |
 | `supplychain-risk.reasoning-base-url` | `http://localhost:8093` | Reasoning agent |
 | `supplychain-risk.proximity-radius-km` | `500` | Great-circle distance threshold for “near” a news location |
 | `supplychain-risk.http-timeout-ms` | `120000` | RestClient read/connect budget |

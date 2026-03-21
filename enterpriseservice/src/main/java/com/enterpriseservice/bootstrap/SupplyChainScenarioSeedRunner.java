@@ -8,22 +8,22 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
- * Runs after JPA startup; loads plants from {@code mock_places.json} if none exist.
+ * Runs after {@link MockPlacesPlantSeedRunner} so plants exist before linking suppliers.
  */
 @Component
-@Order(1)
+@Order(2)
 @RequiredArgsConstructor
 @Slf4j
-public class MockPlacesPlantSeedRunner implements ApplicationRunner {
+public class SupplyChainScenarioSeedRunner implements ApplicationRunner {
 
-	private final MockPlacesPlantSeedService seedService;
+	private final SupplyChainScenarioSeedService seedService;
 
 	@Override
 	public void run(ApplicationArguments args) {
 		try {
 			seedService.seedIfEmpty();
 		} catch (Exception e) {
-			log.warn("Could not seed plants from mock_places.json: {}", e.getMessage());
+			log.warn("Could not seed supply-chain partners: {}", e.getMessage());
 		}
 	}
 }
