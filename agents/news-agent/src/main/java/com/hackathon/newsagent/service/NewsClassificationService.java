@@ -12,12 +12,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
+
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 public class NewsClassificationService {
@@ -27,12 +28,7 @@ public class NewsClassificationService {
 	private static final Pattern DISPATCH_SUFFIX = Pattern.compile("\\s*[—\\-]\\s*dispatch\\s+\\d+\\s*", Pattern.CASE_INSENSITIVE);
 	private static final Pattern DEMO_SUFFIX = Pattern.compile("\\s*\\[demo\\s+[\\d.]+\\]\\s*$");
 
-	private static final List<String> KNOWN_LOCATIONS = List.of(
-			"Singapore", "Rotterdam", "Shanghai", "Hong Kong", "Busan", "Hamburg", "Antwerp",
-			"Los Angeles", "Houston", "Dubai", "Mumbai", "Strait of Malacca", "Suez Canal",
-			"Panama Canal", "Strait of Hormuz", "Jebel Ali", "Piraeus", "Vancouver", "Santos",
-			"Seattle", "Taiwan Strait", "Geneva", "Egypt", "Oman", "United Arab Emirates"
-	);
+	private static final int DEFAULT_CLASSIFICATION_THREADS = 2;
 
 	private final MockServicesClient mockServicesClient;
 	private final LocationServiceClient locationServiceClient;
@@ -42,11 +38,14 @@ public class NewsClassificationService {
 	public NewsClassificationService(
 			MockServicesClient mockServicesClient,
 			LocationServiceClient locationServiceClient,
-			NewsClassifierAiService newsClassifierAiService) {
+			NewsClassifierAiService newsClassifierAiService,
+			@Value("${news.classification-threads:" + DEFAULT_CLASSIFICATION_THREADS + "}") int classificationThreads) {
 		this.mockServicesClient = mockServicesClient;
 		this.locationServiceClient = locationServiceClient;
 		this.newsClassifierAiService = newsClassifierAiService;
-		this.classificationExecutor = Executors.newFixedThreadPool(10);
+		int threads = classificationThreads > 0 ? classificationThreads : DEFAULT_CLASSIFICATION_THREADS;
+		this.classificationExecutor = Executors.newFixedThreadPool(threads);
+		log.info("Classification thread pool size: {} (stays under Anthropic 50 req/min limit)", threads);
 	}
 
 	public ClassifiedNewsResponse getClassifiedNews() {
@@ -93,10 +92,9 @@ public class NewsClassificationService {
 			log.info("AI output uri={}: title={}, locations={}, topics={}", article.uri(),
 					result.title(), result.locations(), result.topics());
 
-			List<String> locations = result.locations();
-			if (locations == null || locations.isEmpty()) {
-				locations = extractLocationsFromBody(article.body());
-				log.debug("AI returned empty locations for uri={}, fallback extracted: {}", article.uri(), locations);
+			List<String> locations = result.locations() != null ? result.locations() : List.of();
+			if (locations.isEmpty()) {
+				log.debug("AI returned empty locations for uri={}", article.uri());
 			}
 
 			String title = result.title() != null ? result.title() : article.title();
@@ -106,12 +104,11 @@ public class NewsClassificationService {
 					locations,
 					result.topics() != null ? result.topics() : List.of());
 		} catch (Exception e) {
-			log.warn("Classification failed for uri={}: {} - using body fallback", article.uri(), e.getMessage());
-			List<String> fallbackLocations = extractLocationsFromBody(article.body());
+			log.warn("Classification failed for uri={}: {} - no fallback", article.uri(), e.getMessage());
 			return new ClassifiedArticleDto(
 					article.uri(),
 					stripDispatchSuffix(article.title()),
-					fallbackLocations,
+					List.of(),
 					List.of());
 		}
 	}
@@ -123,14 +120,4 @@ public class NewsClassificationService {
 		return cleaned.trim();
 	}
 
-	private List<String> extractLocationsFromBody(String body) {
-		if (body == null || body.isBlank()) return List.of("Unknown");
-		List<String> found = new ArrayList<>();
-		for (String loc : KNOWN_LOCATIONS) {
-			if (body.contains(loc) && !found.contains(loc)) {
-				found.add(loc);
-			}
-		}
-		return found.isEmpty() ? List.of("Unknown") : found;
-	}
 }

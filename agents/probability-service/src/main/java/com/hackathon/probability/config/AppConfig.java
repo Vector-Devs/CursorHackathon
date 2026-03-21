@@ -16,10 +16,12 @@ public class AppConfig {
 	@Bean
 	public RestClient newsAgentRestClient(ProbabilityProperties properties) {
 		String baseUrl = normalizeBaseUrl(properties.newsAgentUrl());
-		Duration timeout = Duration.ofSeconds(15);
-		HttpClient httpClient = HttpClient.newBuilder().connectTimeout(timeout).build();
+		int readTimeoutSec = properties.newsAgentTimeoutSeconds() > 0 ? properties.newsAgentTimeoutSeconds() : 120;
+		Duration connectTimeout = Duration.ofSeconds(15);
+		Duration readTimeout = Duration.ofSeconds(readTimeoutSec);
+		HttpClient httpClient = HttpClient.newBuilder().connectTimeout(connectTimeout).build();
 		JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
-		requestFactory.setReadTimeout(timeout);
+		requestFactory.setReadTimeout(readTimeout);
 		return RestClient.builder()
 				.baseUrl(baseUrl)
 				.requestFactory(requestFactory)

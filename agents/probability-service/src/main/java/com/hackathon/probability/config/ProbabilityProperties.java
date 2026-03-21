@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record ProbabilityProperties(
 		String newsAgentUrl,
 		String shipMobilityUrl,
+		int newsAgentTimeoutSeconds,
 		int weightSpeedLow,
 		int weightLocationMatch,
 		int weightLocationAndSpeed,

@@ -36,6 +36,12 @@
     "longitude": "43.450000"
   },
   {
+    "name": "Red Sea",
+    "type": "CHOKEPOINT",
+    "latitude": "22.000000",
+    "longitude": "38.500000"
+  },
+  {
     "name": "Danish Straits",
     "type": "CHOKEPOINT",
     "latitude": "55.800000",
