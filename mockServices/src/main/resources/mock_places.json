@@ -1,0 +1,200 @@
+[
+  {
+    "name": "Strait of Hormuz",
+    "type": "CHOKEPOINT",
+    "latitude": "26.560000",
+    "longitude": "56.250000"
+  },
+  {
+    "name": "Strait of Malacca",
+    "type": "CHOKEPOINT",
+    "latitude": "2.500000",
+    "longitude": "101.200000"
+  },
+  {
+    "name": "Suez Canal",
+    "type": "CHOKEPOINT",
+    "latitude": "30.420000",
+    "longitude": "32.350000"
+  },
+  {
+    "name": "Panama Canal",
+    "type": "CHOKEPOINT",
+    "latitude": "9.100000",
+    "longitude": "-79.680000"
+  },
+  {
+    "name": "Strait of Gibraltar",
+    "type": "CHOKEPOINT",
+    "latitude": "35.970000",
+    "longitude": "-5.600000"
+  },
+  {
+    "name": "Bab el-Mandeb",
+    "type": "CHOKEPOINT",
+    "latitude": "12.580000",
+    "longitude": "43.450000"
+  },
+  {
+    "name": "Danish Straits",
+    "type": "CHOKEPOINT",
+    "latitude": "55.800000",
+    "longitude": "10.500000"
+  },
+  {
+    "name": "Bosphorus",
+    "type": "CHOKEPOINT",
+    "latitude": "41.120000",
+    "longitude": "29.050000"
+  },
+  {
+    "name": "Lombok Strait",
+    "type": "CHOKEPOINT",
+    "latitude": "-8.500000",
+    "longitude": "115.750000"
+  },
+  {
+    "name": "Cape of Good Hope",
+    "type": "CHOKEPOINT",
+    "latitude": "-34.350000",
+    "longitude": "18.470000"
+  },
+  {
+    "name": "Dubai City",
+    "type": "CITY",
+    "latitude": "25.260000",
+    "longitude": "55.300000"
+  },
+  {
+    "name": "Port Jebel Ali",
+    "type": "PORT",
+    "latitude": "25.010000",
+    "longitude": "55.060000"
+  },
+  {
+    "name": "United Arab Emirates",
+    "type": "COUNTRY",
+    "latitude": "24.460000",
+    "longitude": "54.370000"
+  },
+  {
+    "name": "Khasab",
+    "type": "CITY",
+    "latitude": "26.180000",
+    "longitude": "56.240000"
+  },
+  {
+    "name": "Port of Khasab",
+    "type": "PORT",
+    "latitude": "26.200000",
+    "longitude": "56.240000"
+  },
+  {
+    "name": "Oman",
+    "type": "COUNTRY",
+    "latitude": "21.000000",
+    "longitude": "57.000000"
+  },
+  {
+    "name": "Abu Dhabi City",
+    "type": "CITY",
+    "latitude": "24.450000",
+    "longitude": "54.370000"
+  },
+  {
+    "name": "Khalifa Port",
+    "type": "PORT",
+    "latitude": "24.510000",
+    "longitude": "54.680000"
+  },
+  {
+    "name": "Manama City",
+    "type": "CITY",
+    "latitude": "26.220000",
+    "longitude": "50.580000"
+  },
+  {
+    "name": "Khalifa Bin Salman Port",
+    "type": "PORT",
+    "latitude": "26.200000",
+    "longitude": "50.670000"
+  },
+  {
+    "name": "Bahrain",
+    "type": "COUNTRY",
+    "latitude": "26.060000",
+    "longitude": "50.550000"
+  },
+  {
+    "name": "Suez City",
+    "type": "CITY",
+    "latitude": "29.970000",
+    "longitude": "32.530000"
+  },
+  {
+    "name": "Port of Suez",
+    "type": "PORT",
+    "latitude": "29.940000",
+    "longitude": "32.550000"
+  },
+  {
+    "name": "Egypt",
+    "type": "COUNTRY",
+    "latitude": "26.820000",
+    "longitude": "30.800000"
+  },
+  {
+    "name": "Singapore City",
+    "type": "CITY",
+    "latitude": "1.280000",
+    "longitude": "103.850000"
+  },
+  {
+    "name": "Port of Singapore",
+    "type": "PORT",
+    "latitude": "1.250000",
+    "longitude": "103.840000"
+  },
+  {
+    "name": "Singapore",
+    "type": "COUNTRY",
+    "latitude": "1.350000",
+    "longitude": "103.810000"
+  },
+  {
+    "name": "Colon",
+    "type": "CITY",
+    "latitude": "9.350000",
+    "longitude": "-79.900000"
+  },
+  {
+    "name": "Port of Cristobal",
+    "type": "PORT",
+    "latitude": "9.340000",
+    "longitude": "-79.910000"
+  },
+  {
+    "name": "Panama",
+    "type": "COUNTRY",
+    "latitude": "8.530000",
+    "longitude": "-80.780000"
+  },
+  {
+    "name": "Cape Town",
+    "type": "CITY",
+    "latitude": "-33.920000",
+    "longitude": "18.420000"
+  },
+  {
+    "name": "Port of Cape Town",
+    "type": "PORT",
+    "latitude": "-33.910000",
+    "longitude": "18.440000"
+  },
+  {
+    "name": "South Africa",
+    "type": "COUNTRY",
+    "latitude": "-30.550000",
+    "longitude": "22.930000"
+  }
+]

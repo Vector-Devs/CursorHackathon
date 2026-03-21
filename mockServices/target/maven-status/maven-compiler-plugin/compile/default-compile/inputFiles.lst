@@ -1,0 +1,11 @@
+/Users/I340782/cursorhackathonfiles/mockServices/src/main/java/com/example/demo/DemoApplication.java
+/Users/I340782/cursorhackathonfiles/mockServices/src/main/java/com/example/demo/controller/ArticleController.java
+/Users/I340782/cursorhackathonfiles/mockServices/src/main/java/com/example/demo/controller/PlaceController.java
+/Users/I340782/cursorhackathonfiles/mockServices/src/main/java/com/example/demo/controller/VesselController.java
+/Users/I340782/cursorhackathonfiles/mockServices/src/main/java/com/example/demo/model/Article.java
+/Users/I340782/cursorhackathonfiles/mockServices/src/main/java/com/example/demo/model/ArticleResponse.java
+/Users/I340782/cursorhackathonfiles/mockServices/src/main/java/com/example/demo/model/ArticlesWrapper.java
+/Users/I340782/cursorhackathonfiles/mockServices/src/main/java/com/example/demo/model/Author.java
+/Users/I340782/cursorhackathonfiles/mockServices/src/main/java/com/example/demo/model/Place.java
+/Users/I340782/cursorhackathonfiles/mockServices/src/main/java/com/example/demo/model/Source.java
+/Users/I340782/cursorhackathonfiles/mockServices/src/main/java/com/example/demo/model/Vessel.java

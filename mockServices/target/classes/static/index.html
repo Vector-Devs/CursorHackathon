@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maritime & Logistics Intelligence Control Panel</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Inline styles for rich aesthetics -->
+    <style>
+        :root {
+            --bg-dark: #070911;
+            --panel-bg: rgba(13, 17, 33, 0.7);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-main: #f3f4f6;
+            --accent-glow: #00e5ff;
+            --accent-warm: #ff2a6d;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-dark);
+            font-family: 'Outfit', sans-serif;
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Float Sidebar Glassmorphism panel */
+        .sidebar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 380px;
+            height: calc(100vh - 40px);
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+            padding: 24px;
+            box-sizing: border-box;
+            transition: transform 0.3s ease;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+
+        .header i {
+            font-size: 24px;
+            color: var(--accent-glow);
+            text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: 0.5px;
+            background: linear-gradient(90deg, #ffffff, var(--accent-glow));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Tabs setup inside Sidebar */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            background: rgba(255,255,255,0.03);
+            padding: 4px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+        .tab {
+            flex: 1;
+            padding: 8px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+            color: rgba(255,255,255,0.6);
+        }
+        .tab.active {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--accent-glow);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .tab-content {
+            display: none;
+            flex-direction: column;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+        .tab-content.active {
+            display: flex;
+        }
+
+        .section-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: rgba(255,255,255,0.4);
+            margin: 12px 0 8px 0;
+        }
+
+        .control-group {
+            margin-bottom: 12px;
+        }
+
+        select, input, button {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            box-sizing: border-box;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        select:focus, input:focus {
+            border-color: var(--accent-glow);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.1);
+        }
+
+        .coord-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #00b4d8, #0077b6);
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0, 180, 216, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0, 180, 216, 0.3);
+        }
+
+        /* Scrollable panels */
+        .results-panel, .scrollable-panel {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-top: 12px;
+            padding-right: 4px;
+        }
+
+        .results-panel::-webkit-scrollbar, .scrollable-panel::-webkit-scrollbar {
+            width: 4px;
+        }
+        .results-panel::-webkit-scrollbar-thumb, .scrollable-panel::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.02);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 3px solid #ccc;
+            transition: background 0.2s;
+        }
+        .card:hover {
+            background: rgba(255,255,255,0.04);
+        }
+
+        .card.vessel { border-color: var(--accent-glow); }
+        .card.chokepoint { border-color: var(--accent-warm); }
+        .card.port { border-color: #00ff88; }
+        .card.city { border-color: #9d4edd; }
+
+        .card-title {
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .card-subtitle {
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            margin-top: 2px;
+        }
+
+        .card-stat {
+            font-size: 12px;
+            margin-top: 6px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .badge.stopped {
+            background: rgba(255, 42, 109, 0.2);
+            color: #ff2a6d;
+        }
+
+        /* Docs Styles */
+        .api-doc-item {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+        .api-method {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #00e5ff;
+            color: #0a192f;
+            margin-right: 6px;
+        }
+        .api-method.get { background: #00ff88; }
+        .api-path {
+            font-family: monospace;
+            font-size: 12px;
+            color: #fff;
+        }
+        .api-desc {
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+            margin: 6px 0;
+        }
+        .api-param-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.4);
+            margin-top: 6px;
+        }
+        .api-param {
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--accent-glow);
+            background: rgba(255,255,255,0.03);
+            padding: 2px 4px;
+            border-radius: 4px;
+            margin-right: 4px;
+        }
+
+        /* Marker Pulses animation on map */
+        @keyframes pulseYellow {
+            0% { transform: scale(0.95); opacity: 0.7; }
+            50% { transform: scale(1.05); opacity: 0.3; }
+            100% { transform: scale(0.95); opacity: 0.7; }
+        }
+
+        .pulse-marker {
+            background: rgba(255, 215, 0, 0.4);
+            border-radius: 50%;
+            border: 2px solid #ffd700;
+            animation: pulseYellow 2s infinite;
+        }
+
+        .leaflet-popup-content-wrapper {
+            background: rgba(13, 17, 33, 0.9) !important;
+            backdrop-filter: blur(8px);
+            color: var(--text-main) !important;
+            border: 1px solid var(--border-color);
+            border-radius: 12px !important;
+        }
+        .leaflet-popup-tip { background: rgba(13, 17, 33, 0.9) !important; }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Panel Controls -->
+    <div class="sidebar">
+        <div class="header">
+            <i class="fa-solid fa-anchor"></i>
+            <h1>Maritime Ops Center</h1>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="tabs">
+            <div id="tab-scanner" class="tab active" onclick="switchTab('scanner')">Scanner</div>
+            <div id="tab-docs" class="tab" onclick="switchTab('docs')">API Docs</div>
+        </div>
+
+        <!-- Scan content -->
+        <div id="content-scanner" class="tab-content active">
+            <div class="section-title">Query parameters</div>
+            <div class="control-group">
+                <label style="font-size: 12px; display:block; margin-bottom:4px">Location Presettings</label>
+                <select id="preset-selector" onchange="applyPreset()">
+                    <option value="">-- Select Region Presetting --</option>
+                    <option value="dubai">Dubai Conflict Zone (War Area)</option>
+                    <option value="hormuz">Strait of Hormuz (War Area)</option>
+                    <option value="suez">Suez Canal</option>
+                    <option value="singapore">Singapore Strait Hub</option>
+                    <option value="atlantic">Default prompt (Atlantic)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label style="font-size: 12px; display:block; margin-bottom:4px">Target Coordinates</label>
+                <div class="coord-row">
+                    <input type="text" id="lat-input" placeholder="Latitude">
+                    <input type="text" id="lon-input" placeholder="Longitude">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label style="font-size: 12px; display:block; margin-bottom:4px">Search Radius (Nautical Miles)</label>
+                <input type="number" id="radius-input" value="100" placeholder="e.g., 100">
+            </div>
+
+            <button onclick="fetchData()">
+                <i class="fa-solid fa-radar"></i> Start Scanning
+            </button>
+
+            <div class="section-title" id="results-title">Operational Feed (0 items)</div>
+            <div class="results-panel" id="results-feed">
+                <div style="text-align:center; color:rgba(255,255,255,0.3); margin-top: 40px;">
+                    <i class="fa-solid fa-satellite-dish" style="font-size:24px; margin-bottom: 8px;"></i>
+                    <div>Click map or select preset to begin</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Docs contents -->
+        <div id="content-docs" class="tab-content">
+            <div class="section-title">Testable APIs Reference</div>
+            <div class="scrollable-panel">
+                
+                <div class="api-doc-item">
+                    <div><span class="api-method">POST</span> <span class="api-path">/api/vessels_operations/get-vessels-by-area</span></div>
+                    <div class="api-desc">Fetch mock vessels filtered by proximity using Haversine calculation. Speed scales down in War Areas.</div>
+                    <div class="api-param-title">URL Parameters:</div>
+                    <div style="margin-top: 4px;">
+                        <span class="api-param">latitude</span>
+                        <span class="api-param">longitude</span>
+                        <span class="api-param">circle_radius</span> <span style="font-size:10px">(km)</span>
+                    </div>
+                </div>
+
+                <div class="api-doc-item">
+                    <div><span class="api-method">POST</span> <span class="api-path">/api/vessels_operations/get-places</span></div>
+                    <div class="api-desc">Fetch places (Ports, Cities, Countries, Chokepoints) within 100 NM (185.2 km) radius.</div>
+                    <div class="api-param-title">URL Parameters:</div>
+                    <div style="margin-top: 4px;">
+                        <span class="api-param">latitude</span>
+                        <span class="api-param">longitude</span>
+                    </div>
+                </div>
+
+                <div class="api-doc-item">
+                    <div><span class="api-method get">GET</span> <span class="api-path">/api/v1/article/getArticles</span></div>
+                    <div class="api-desc">Fetch mock intelligence articles (Maritime Security Bulletins).</div>
+                    <div class="api-param-title">Fallback Support:</div>
+                    <div style="font-size:11px; color:rgba(255,255,255,0.5)">Returns long articles structure (Conflict/Piracy items).</div>
+                </div>
+                
+                <div style="margin-top: 20px; font-size: 11px; color: rgba(255,255,255,0.3); text-align:center;">
+                    All POST endpoints consume standard Form URL-encoded fields in parameters.
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Map Container -->
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script>
+        // Start Map
+        var map = L.map('map', {
+            zoomControl: false 
+        }).setView([25.26, 55.30], 5);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap, © CARTO'
+        }).addTo(map);
+
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        var markersGroup = L.layerGroup().addTo(map);
+        var searchCircle = null;
+
+        const presets = {
+            dubai: { lat: 25.26, lon: 55.30, radius: 100 },
+            hormuz: { lat: 26.50, lon: 56.50, radius: 100 },
+            suez: { lat: 29.93, lon: 32.55, radius: 100 },
+            singapore: { lat: 1.28, lon: 103.85, radius: 100 },
+            atlantic: { lat: 45.06, lon: -8.88, radius: 100 }
+        };
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            document.getElementById('tab-' + tab).classList.add('active');
+            document.getElementById('content-' + tab).classList.add('active');
+        }
+
+        function applyPreset() {
+            const val = document.getElementById('preset-selector').value;
+            if (presets[val]) {
+                const p = presets[val];
+                document.getElementById('lat-input').value = p.lat;
+                document.getElementById('lon-input').value = p.lon;
+                document.getElementById('radius-input').value = p.radius;
+                map.flyTo([p.lat, p.lon], 7);
+                fetchData();
+            }
+        }
+
+        map.on('click', function(e) {
+            document.getElementById('lat-input').value = e.latlng.lat.toFixed(6);
+            document.getElementById('lon-input').value = e.latlng.lng.toFixed(6);
+            fetchData();
+        });
+
+        async function fetchData() {
+            const lat = document.getElementById('lat-input').value;
+            const lon = document.getElementById('lon-input').value;
+            const radiusNm = document.getElementById('radius-input').value || 100;
+            const radiusKm = radiusNm * 1.852; 
+
+            if (!lat || !lon) return alert("Select coordinates on map or use Presetting");
+
+            markersGroup.clearLayers();
+            if (searchCircle) map.removeLayer(searchCircle);
+
+            searchCircle = L.circle([lat, lon], {
+                radius: radiusKm * 1000, 
+                color: 'var(--accent-glow)',
+                weight: 1,
+                fillColor: 'rgba(0, 229, 255, 0.05)',
+                fillOpacity: 1
+            }).addTo(map);
+
+            const feedContainer = document.getElementById('results-feed');
+            feedContainer.innerHTML = '<div style="text-align:center; color:var(--accent-glow); margin-top:20px;">Scanning airspace / waterspace...</div>';
+
+            try {
+                const [vesselsRes, placesRes] = await Promise.all([
+                    fetch(`/api/vessels_operations/get-vessels-by-area?latitude=${lat}&longitude=${lon}&circle_radius=${radiusKm}`, { method: 'POST' }),
+                    fetch(`/api/vessels_operations/get-places?latitude=${lat}&longitude=${lon}`, { method: 'POST' })
+                ]);
+
+                const vessels = await vesselsRes.json();
+                const places = await placesRes.json();
+
+                feedContainer.innerHTML = ''; 
+                document.getElementById('results-title').textContent = `Operational Feed (${vessels.length + places.length} items)`;
+
+                places.forEach(p => {
+                    let color = '#00ff88'; 
+                    let iconType = 'anchor';
+                    if (p.type === 'CHOKEPOINT') { color = '#ff2a6d'; iconType = 'triangle-exclamation'; }
+                    if (p.type === 'CITY') { color = '#9d4edd'; iconType = 'building-columns'; }
+                    if (p.type === 'COUNTRY') { color = '#ffd700'; iconType = 'globe'; }
+
+                    const placeIcon = L.divIcon({
+                        className: 'custom-div-icon',
+                        html: `<div style="background-color:${color}; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow: 0 0 10px ${color}"></div>`,
+                        iconSize: [12, 12]
+                    });
+
+                    L.marker([p.latitude, p.longitude], { icon: placeIcon })
+                        .bindPopup(`<b>${p.name}</b><br><span style="color:${color}">${p.type}</span>`)
+                        .addTo(markersGroup);
+
+                    const card = document.createElement('div');
+                    card.className = `card ${p.type.toLowerCase()}`;
+                    card.innerHTML = `
+                        <div class="card-title">
+                            <span><i class="fa-solid fa-${iconType}" style="color:${color}; margin-right:6px"></i> ${p.name}</span>
+                        </div>
+                        <div class="card-subtitle">${p.type}</div>
+                    `;
+                    feedContainer.appendChild(card);
+                });
+
+                vessels.forEach(v => {
+                    const speedVal = parseInt(v.speed);
+                    const isWarSlow = speedVal < 30; 
+                    const color = isWarSlow ? '#ff7300' : '#00e5ff';
+
+                    const vesselIcon = L.divIcon({
+                        className: 'vessels-icon',
+                        html: `<div style="background-color:${color}; width:10px; height:10px; border-radius:50%; border:1px solid white; box-shadow: 0 0 8px ${color}"></div>`,
+                        iconSize: [10, 10]
+                    });
+
+                    L.marker([v.latitude, v.longitude], { icon: vesselIcon })
+                        .bindPopup(`<b>${v.name}</b><br>Speed: ${(speedVal/10).toFixed(1)} kn<br>Course: ${v.course}°<br>MMSI: ${v.mmsi}`)
+                        .addTo(markersGroup);
+
+                    const card = document.createElement('div');
+                    card.className = 'card vessel';
+                    card.innerHTML = `
+                        <div class="card-title">
+                            <span><i class="fa-solid fa-ship" style="color:${color}; margin-right:6px"></i> ${v.name}</span>
+                            <span class="badge ${isWarSlow ? 'stopped' : ''}">${isWarSlow ? 'SLOW / STOPPED' : 'ACTIVE'}</span>
+                        </div>
+                        <div class="card-subtitle">MMSI: ${v.mmsi}</div>
+                        <div class="card-stat">
+                            <span><i class="fa-solid fa-gauge" style="color:var(--accent-glow)"></i> ${(speedVal/10).toFixed(1)} kn</span>
+                            <span><i class="fa-solid fa-compass" style="color:var(--accent-glow)"></i> ${v.course}°</span>
+                        </div>
+                    `;
+                    feedContainer.appendChild(card);
+                });
+
+                if (vessels.length === 0 && places.length === 0) {
+                     feedContainer.innerHTML = '<div style="text-align:center; color:rgba(255,255,255,0.4); margin-top:40px;">No objects found in this quadrant</div>';
+                }
+
+            } catch (err) {
+                feedContainer.innerHTML = '<div style="text-align:center; color:#ff2a6d; margin-top:20px;">Endpoint connection failed or Timeout</div>';
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+</html>

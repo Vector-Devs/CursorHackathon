@@ -1,0 +1,542 @@
+[
+  {
+    "mmsi": "245297000",
+    "name": "ELBEBORG",
+    "latitude": "45.078705",
+    "longitude": "-8.9553804",
+    "speed": "110",
+    "course": "185",
+    "heading": "184"
+  },
+  {
+    "mmsi": "205106000",
+    "name": "MARCUS",
+    "latitude": "45.041",
+    "longitude": "-8.8073854",
+    "speed": "35",
+    "course": "198",
+    "heading": null
+  },
+  {
+    "mmsi": "305005300",
+    "name": "WANHEIM",
+    "latitude": "45.070534",
+    "longitude": "-8.8638268",
+    "speed": "101",
+    "course": "354",
+    "heading": "353"
+  },
+  {
+    "mmsi": "249223000",
+    "name": "CGAS JAGUAR",
+    "latitude": "45.048882",
+    "longitude": "-8.8798838",
+    "speed": "74",
+    "course": "357",
+    "heading": "357"
+  },
+  {
+    "mmsi": "400000000",
+    "name": "COSCO SHANGHAI 8",
+    "latitude": "25.315568",
+    "longitude": "55.269352",
+    "speed": "16",
+    "course": "181",
+    "heading": "179"
+  },
+  {
+    "mmsi": "400000001",
+    "name": "HORIZON 96",
+    "latitude": "25.298192",
+    "longitude": "55.327030",
+    "speed": "0",
+    "course": "103",
+    "heading": "98"
+  },
+  {
+    "mmsi": "400000002",
+    "name": "POLAR BEAR 84",
+    "latitude": "25.215405",
+    "longitude": "55.353574",
+    "speed": "25",
+    "course": "155",
+    "heading": "157"
+  },
+  {
+    "mmsi": "400000003",
+    "name": "ATLANTIC BREEZE 23",
+    "latitude": "25.167728",
+    "longitude": "55.206585",
+    "speed": "10",
+    "course": "264",
+    "heading": null
+  },
+  {
+    "mmsi": "400000004",
+    "name": "ATLANTIC BREEZE 18",
+    "latitude": "25.225537",
+    "longitude": "55.383096",
+    "speed": "23",
+    "course": "211",
+    "heading": null
+  },
+  {
+    "mmsi": "400000005",
+    "name": "COSCO SHANGHAI 20",
+    "latitude": "26.579767",
+    "longitude": "56.454013",
+    "speed": "0",
+    "course": "232",
+    "heading": "232"
+  },
+  {
+    "mmsi": "400000006",
+    "name": "COSCO SHANGHAI 90",
+    "latitude": "26.564861",
+    "longitude": "56.566919",
+    "speed": "23",
+    "course": "175",
+    "heading": "177"
+  },
+  {
+    "mmsi": "400000007",
+    "name": "BALTIC MERMAID 32",
+    "latitude": "26.512302",
+    "longitude": "56.433175",
+    "speed": "10",
+    "course": "57",
+    "heading": "52"
+  },
+  {
+    "mmsi": "400000008",
+    "name": "ENTERPRISE 9",
+    "latitude": "24.418876",
+    "longitude": "54.288623",
+    "speed": "8",
+    "course": "76",
+    "heading": "78"
+  },
+  {
+    "mmsi": "400000009",
+    "name": "VICTORY 43",
+    "latitude": "24.503939",
+    "longitude": "54.346037",
+    "speed": "24",
+    "course": "32",
+    "heading": "29"
+  },
+  {
+    "mmsi": "400000010",
+    "name": "ATLANTIC BREEZE 88",
+    "latitude": "24.528080",
+    "longitude": "54.348211",
+    "speed": "0",
+    "course": "164",
+    "heading": "164"
+  },
+  {
+    "mmsi": "400000011",
+    "name": "EVER GLIVEN 73",
+    "latitude": "26.304340",
+    "longitude": "50.593522",
+    "speed": "19",
+    "course": "341",
+    "heading": null
+  },
+  {
+    "mmsi": "400000012",
+    "name": "MAERSK JAKARTA 50",
+    "latitude": "26.166810",
+    "longitude": "50.489038",
+    "speed": "12",
+    "course": "49",
+    "heading": "44"
+  },
+  {
+    "mmsi": "400000013",
+    "name": "VOYAGER 58",
+    "latitude": "26.213721",
+    "longitude": "50.660210",
+    "speed": "15",
+    "course": "138",
+    "heading": "137"
+  },
+  {
+    "mmsi": "400000014",
+    "name": "ENTERPRISE 54",
+    "latitude": "25.924298",
+    "longitude": "52.059399",
+    "speed": "19",
+    "course": "179",
+    "heading": "184"
+  },
+  {
+    "mmsi": "400000015",
+    "name": "BLUE STAR 44",
+    "latitude": "26.046213",
+    "longitude": "52.048549",
+    "speed": "0",
+    "course": "199",
+    "heading": "196"
+  },
+  {
+    "mmsi": "400000016",
+    "name": "BALTIC MERMAID 43",
+    "latitude": "26.060838",
+    "longitude": "51.964849",
+    "speed": "16",
+    "course": "318",
+    "heading": "320"
+  },
+  {
+    "mmsi": "400000017",
+    "name": "ENDEAVOUR 14",
+    "latitude": "26.088618",
+    "longitude": "51.978382",
+    "speed": "22",
+    "course": "44",
+    "heading": "48"
+  },
+  {
+    "mmsi": "400000018",
+    "name": "NORDIC TRINITY 36",
+    "latitude": "29.836236",
+    "longitude": "32.641065",
+    "speed": "71",
+    "course": "209",
+    "heading": "208"
+  },
+  {
+    "mmsi": "400000019",
+    "name": "EVER GLIVEN 99",
+    "latitude": "29.941290",
+    "longitude": "32.619416",
+    "speed": "89",
+    "course": "95",
+    "heading": "97"
+  },
+  {
+    "mmsi": "400000020",
+    "name": "POLAR BEAR 35",
+    "latitude": "30.009478",
+    "longitude": "32.458848",
+    "speed": "53",
+    "course": "142",
+    "heading": "145"
+  },
+  {
+    "mmsi": "400000021",
+    "name": "BLUE STAR 12",
+    "latitude": "35.045723",
+    "longitude": "14.913675",
+    "speed": "144",
+    "course": "122",
+    "heading": "125"
+  },
+  {
+    "mmsi": "400000022",
+    "name": "ENDEAVOUR 1",
+    "latitude": "35.066037",
+    "longitude": "15.017851",
+    "speed": "135",
+    "course": "232",
+    "heading": "228"
+  },
+  {
+    "mmsi": "400000023",
+    "name": "BLUE STAR 22",
+    "latitude": "35.059270",
+    "longitude": "14.918063",
+    "speed": "125",
+    "course": "59",
+    "heading": null
+  },
+  {
+    "mmsi": "400000024",
+    "name": "COSCO SHANGHAI 49",
+    "latitude": "-34.332883",
+    "longitude": "18.469015",
+    "speed": "123",
+    "course": "34",
+    "heading": "29"
+  },
+  {
+    "mmsi": "400000025",
+    "name": "COSCO SHANGHAI 17",
+    "latitude": "-34.396217",
+    "longitude": "18.455732",
+    "speed": "130",
+    "course": "213",
+    "heading": "213"
+  },
+  {
+    "mmsi": "400000026",
+    "name": "PACIFIC TRADER 10",
+    "latitude": "-34.276709",
+    "longitude": "18.591690",
+    "speed": "160",
+    "course": "226",
+    "heading": null
+  },
+  {
+    "mmsi": "400000027",
+    "name": "MAERSK JAKARTA 87",
+    "latitude": "-34.433194",
+    "longitude": "18.516104",
+    "speed": "124",
+    "course": "29",
+    "heading": "25"
+  },
+  {
+    "mmsi": "400000028",
+    "name": "ARCTIC VOYAGER 25",
+    "latitude": "9.089063",
+    "longitude": "-79.855760",
+    "speed": "45",
+    "course": "310",
+    "heading": "306"
+  },
+  {
+    "mmsi": "400000029",
+    "name": "SEA HERO 73",
+    "latitude": "9.000792",
+    "longitude": "-79.837352",
+    "speed": "31",
+    "course": "74",
+    "heading": "75"
+  },
+  {
+    "mmsi": "400000030",
+    "name": "EVER GLIVEN 10",
+    "latitude": "9.156385",
+    "longitude": "-79.896273",
+    "speed": "64",
+    "course": "298",
+    "heading": "303"
+  },
+  {
+    "mmsi": "400000031",
+    "name": "ENDEAVOUR 11",
+    "latitude": "9.132309",
+    "longitude": "-79.822040",
+    "speed": "67",
+    "course": "165",
+    "heading": null
+  },
+  {
+    "mmsi": "400000032",
+    "name": "RED SEA EXPLORER 27",
+    "latitude": "9.047069",
+    "longitude": "-80.004566",
+    "speed": "50",
+    "course": "61",
+    "heading": "60"
+  },
+  {
+    "mmsi": "400000033",
+    "name": "COSCO SHANGHAI 26",
+    "latitude": "1.357856",
+    "longitude": "103.943848",
+    "speed": "135",
+    "course": "346",
+    "heading": "346"
+  },
+  {
+    "mmsi": "400000034",
+    "name": "DISCOVERY 3",
+    "latitude": "1.196168",
+    "longitude": "103.806210",
+    "speed": "157",
+    "course": "114",
+    "heading": "111"
+  },
+  {
+    "mmsi": "400000035",
+    "name": "ATLANTIC BREEZE 48",
+    "latitude": "1.298209",
+    "longitude": "103.794711",
+    "speed": "126",
+    "course": "317",
+    "heading": "319"
+  },
+  {
+    "mmsi": "400000036",
+    "name": "BLUE STAR 87",
+    "latitude": "1.366114",
+    "longitude": "103.865541",
+    "speed": "125",
+    "course": "154",
+    "heading": "152"
+  },
+  {
+    "mmsi": "400000037",
+    "name": "ENTERPRISE 52",
+    "latitude": "1.265657",
+    "longitude": "103.833409",
+    "speed": "157",
+    "course": "253",
+    "heading": "255"
+  },
+  {
+    "mmsi": "400000038",
+    "name": "POLAR BEAR 73",
+    "latitude": "-0.944898",
+    "longitude": "114.951828",
+    "speed": "128",
+    "course": "354",
+    "heading": "352"
+  },
+  {
+    "mmsi": "400000039",
+    "name": "ENDEAVOUR 26",
+    "latitude": "-1.058462",
+    "longitude": "114.956110",
+    "speed": "116",
+    "course": "82",
+    "heading": "83"
+  },
+  {
+    "mmsi": "400000040",
+    "name": "BLUE STAR 93",
+    "latitude": "-0.927754",
+    "longitude": "114.900929",
+    "speed": "138",
+    "course": "299",
+    "heading": "296"
+  },
+  {
+    "mmsi": "400000041",
+    "name": "EVER GLIVEN 52",
+    "latitude": "-1.000415",
+    "longitude": "115.045286",
+    "speed": "145",
+    "course": "199",
+    "heading": "197"
+  },
+  {
+    "mmsi": "400000042",
+    "name": "DISCOVERY 63",
+    "latitude": "30.097668",
+    "longitude": "122.062109",
+    "speed": "132",
+    "course": "62",
+    "heading": "58"
+  },
+  {
+    "mmsi": "400000043",
+    "name": "PACIFIC TRADER 40",
+    "latitude": "30.069815",
+    "longitude": "121.949406",
+    "speed": "155",
+    "course": "200",
+    "heading": "198"
+  },
+  {
+    "mmsi": "400000044",
+    "name": "DISCOVERY 39",
+    "latitude": "30.072693",
+    "longitude": "121.926170",
+    "speed": "143",
+    "course": "157",
+    "heading": null
+  },
+  {
+    "mmsi": "400000045",
+    "name": "ENTERPRISE 40",
+    "latitude": "24.059294",
+    "longitude": "121.097738",
+    "speed": "150",
+    "course": "359",
+    "heading": "358"
+  },
+  {
+    "mmsi": "400000046",
+    "name": "BALTIC MERMAID 39",
+    "latitude": "23.942180",
+    "longitude": "120.908922",
+    "speed": "148",
+    "course": "190",
+    "heading": "195"
+  },
+  {
+    "mmsi": "400000047",
+    "name": "NORDIC TRINITY 42",
+    "latitude": "24.097359",
+    "longitude": "121.051056",
+    "speed": "153",
+    "course": "45",
+    "heading": "40"
+  },
+  {
+    "mmsi": "400000048",
+    "name": "COSCO SHANGHAI 22",
+    "latitude": "34.988524",
+    "longitude": "139.978446",
+    "speed": "114",
+    "course": "31",
+    "heading": "34"
+  },
+  {
+    "mmsi": "400000049",
+    "name": "DISCOVERY 77",
+    "latitude": "34.988576",
+    "longitude": "140.059130",
+    "speed": "130",
+    "course": "229",
+    "heading": null
+  },
+  {
+    "mmsi": "400000050",
+    "name": "ARCTIC VOYAGER 47",
+    "latitude": "34.946414",
+    "longitude": "140.023891",
+    "speed": "142",
+    "course": "296",
+    "heading": "294"
+  },
+  {
+    "mmsi": "400000051",
+    "name": "SEA HERO 55",
+    "latitude": "35.054999",
+    "longitude": "139.917320",
+    "speed": "140",
+    "course": "226",
+    "heading": "231"
+  },
+  {
+    "mmsi": "400000052",
+    "name": "HORIZON 44",
+    "latitude": "34.997599",
+    "longitude": "140.014239",
+    "speed": "160",
+    "course": "217",
+    "heading": "222"
+  },
+  {
+    "mmsi": "400000053",
+    "name": "BALTIC MERMAID 7",
+    "latitude": "40.927342",
+    "longitude": "-69.978174",
+    "speed": "137",
+    "course": "11",
+    "heading": "15"
+  },
+  {
+    "mmsi": "400000054",
+    "name": "ATLANTIC BREEZE 65",
+    "latitude": "40.960938",
+    "longitude": "-69.957327",
+    "speed": "114",
+    "course": "284",
+    "heading": "284"
+  },
+  {
+    "mmsi": "400000055",
+    "name": "VICTORY 70",
+    "latitude": "41.031201",
+    "longitude": "-69.982075",
+    "speed": "157",
+    "course": "63",
+    "heading": "67"
+  }
+]
