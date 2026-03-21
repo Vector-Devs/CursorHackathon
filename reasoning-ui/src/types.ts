@@ -19,6 +19,8 @@ export interface ClassifiedArticleDto {
   date: string;
   dateTime: string;
   categories: CategoryAssignmentDto[];
+  /** Top themes + excerpt from news-agent (optional for older responses). */
+  summary?: string | null;
   shippingRouteImpact: ShippingRouteImpactDto | null;
 }
 

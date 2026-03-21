@@ -80,7 +80,7 @@ curl -sf "http://localhost:8093/api/agent/reasoning-report" | head -c 80 && echo
 
 ## news-agent
 
-Supply-chain **news classification**: pulls articles from the mock news API, runs a weighted lexicon over title + body, returns **multi-label** categories with scores and matched keyword signals. Each article in the response includes **`body`** text so downstream agents (e.g. reasoning-agent) can extract geography.
+Supply-chain **news classification**: pulls articles from the mock news API, runs a weighted lexicon over title + body, and returns the **top categories by score** (up to four), each with a **probability** (`score`, normalized within the article). A short **`summary`** line combines those leading themes with an excerpt of the article. Each article still includes **`body`** so downstream agents (e.g. reasoning-agent) can extract geography.
 
 ### Run
 
@@ -95,8 +95,8 @@ cd agents/news-agent && mvn spring-boot:run
 | `news.api.base-url` | `http://localhost:8082` | Mock service base URL |
 | `news.api.path` | `/api/v1/article/getArticles` | Article fetch (`POST`) |
 | `server.port` | `8090` | Agent port |
-| `agent.classification.min-score` | `0.12` | Minimum category score (0–1) to keep a label |
-| `agent.classification.max-categories-per-article` | `4` | Max categories per article |
+| `agent.classification.min-score` | `0.12` | Reserved for future filtering (ranking uses top scores regardless) |
+| `agent.classification.max-categories-per-article` | `4` | Cap on how many top-scoring categories are returned (up to **4**) |
 
 ### HTTP API
 
@@ -112,8 +112,8 @@ If the news API is unreachable: **503** with `{ "message": "..." }`.
 
 ### Response (summary)
 
-- `articleCount`, `articles[]` with `uri`, `title`, **`body`**, `url`, `date`, `dateTime`, `categories[]`
-- Each category: `categoryId`, `categoryLabel`, `categoryDescription`, `score`, `matchedSignals`
+- `articleCount`, `articles[]` with `uri`, `title`, **`body`**, **`summary`**, `url`, `date`, `dateTime`, `categories[]`, `shippingRouteImpact`
+- `categories[]`: up to **four** highest-probability labels; each has `categoryId`, `categoryLabel`, `categoryDescription`, `score`, `matchedSignals`
 
 Themes include geopolitical risk, trade/tariffs, disasters, logistics disruption, raw materials, cyber, and corporate restructuring. Rules live in `ArticleClassifier`.
 
@@ -273,7 +273,7 @@ cd agents/reasoning-agent && mvn spring-boot:run
 | `reasoning.upstream.places-catalog-url` | `http://localhost:8082/api/v1/places` | Mock catalog for substring mention detection |
 | `reasoning.pipeline.search-radius-nm` | `54` | Default vessel search radius (**NM**) when `?radiusNm` is omitted (~100 km) |
 | `reasoning.pipeline.min-radius-nm` | `1` | Minimum allowed `radiusNm` |
-| `reasoning.pipeline.max-radius-nm` | `270` | Maximum allowed `radiusNm` (~500 km) |
+| `reasoning.pipeline.max-radius-nm` | `3000` | Maximum allowed `radiusNm` |
 | `server.port` | `8093` | reasoning-agent port |
 
 ### HTTP API

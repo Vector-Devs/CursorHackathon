@@ -312,6 +312,18 @@
   text-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
 }
 
+.summary-text {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #dce4f5;
+  line-height: 1.65;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(0, 255, 247, 0.22);
+  background: rgba(0, 255, 247, 0.07);
+  box-shadow: 0 0 20px rgba(0, 255, 240, 0.06);
+}
+
 .body-preview {
   margin: 0;
   font-size: 0.86rem;

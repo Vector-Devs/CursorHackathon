@@ -5,17 +5,27 @@ import "./App.css";
 
 /** Keep in sync with reasoning.pipeline.*-nm in application.properties (nautical miles) */
 const RADIUS_MIN = 1;
-const RADIUS_MAX = 270;
+const RADIUS_MAX = 3000;
 const RADIUS_DEFAULT = 54;
 
 function pct(n: number): string {
   return `${Math.round(n * 1000) / 10}%`;
 }
 
+function fallbackSummaryExcerpt(body: string | undefined): string | null {
+  if (!body?.trim()) return null;
+  const t = body.trim();
+  if (t.length <= 360) return t;
+  const cut = t.lastIndexOf(" ", 360);
+  return (cut > 50 ? t.slice(0, cut) : t.slice(0, 360)) + "…";
+}
+
 function ArticleCard({ row }: { row: ArticleReasoningDto }) {
   const a = row.classified;
   const impact = a.shippingRouteImpact;
   const prob = impact?.probability ?? 0;
+  const topCategories = (a.categories ?? []).slice(0, 4);
+  const summaryText = a.summary ?? fallbackSummaryExcerpt(a.body);
 
   return (
     <article className="card">
@@ -34,18 +44,18 @@ function ArticleCard({ row }: { row: ArticleReasoningDto }) {
         </div>
       </div>
       <div className="card-body">
-        {a.body ? (
+        {summaryText ? (
           <div>
-            <div className="section-label">Summary / body</div>
-            <p className="body-preview">{a.body}</p>
+            <div className="section-label">Risk summary</div>
+            <p className="summary-text">{summaryText}</p>
           </div>
         ) : null}
 
         <div>
-          <div className="section-label">News categories</div>
-          {a.categories?.length ? (
+          <div className="section-label">Top supply-chain categories (highest score)</div>
+          {topCategories.length ? (
             <div className="chips">
-              {a.categories.map((c) => (
+              {topCategories.map((c) => (
                 <span key={c.categoryId} className="chip" title={c.categoryDescription}>
                   {c.categoryLabel}
                   <span className="chip-score">{pct(c.score)}</span>
@@ -53,9 +63,16 @@ function ArticleCard({ row }: { row: ArticleReasoningDto }) {
               ))}
             </div>
           ) : (
-            <p className="empty-note">No categories above threshold.</p>
+            <p className="empty-note">No category signals detected for this article.</p>
           )}
         </div>
+
+        {a.body ? (
+          <div>
+            <div className="section-label">Full article text</div>
+            <p className="body-preview">{a.body}</p>
+          </div>
+        ) : null}
 
         <div className="route-impact">
           <div className="section-label">Shipping route impact (estimated)</div>
