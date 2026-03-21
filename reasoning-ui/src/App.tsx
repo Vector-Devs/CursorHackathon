@@ -1,16 +1,31 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchReasoningReport } from "./api";
 import type { ArticleReasoningDto, ReasoningReportResponse } from "./types";
 import "./App.css";
 
+/** Keep in sync with reasoning.pipeline.*-nm in application.properties (nautical miles) */
+const RADIUS_MIN = 1;
+const RADIUS_MAX = 3000;
+const RADIUS_DEFAULT = 54;
+
 function pct(n: number): string {
   return `${Math.round(n * 1000) / 10}%`;
+}
+
+function fallbackSummaryExcerpt(body: string | undefined): string | null {
+  if (!body?.trim()) return null;
+  const t = body.trim();
+  if (t.length <= 360) return t;
+  const cut = t.lastIndexOf(" ", 360);
+  return (cut > 50 ? t.slice(0, cut) : t.slice(0, 360)) + "…";
 }
 
 function ArticleCard({ row }: { row: ArticleReasoningDto }) {
   const a = row.classified;
   const impact = a.shippingRouteImpact;
   const prob = impact?.probability ?? 0;
+  const topCategories = (a.categories ?? []).slice(0, 4);
+  const summaryText = a.summary ?? fallbackSummaryExcerpt(a.body);
 
   return (
     <article className="card">
@@ -29,18 +44,18 @@ function ArticleCard({ row }: { row: ArticleReasoningDto }) {
         </div>
       </div>
       <div className="card-body">
-        {a.body ? (
+        {summaryText ? (
           <div>
-            <div className="section-label">Summary / body</div>
-            <p className="body-preview">{a.body}</p>
+            <div className="section-label">Risk summary</div>
+            <p className="summary-text">{summaryText}</p>
           </div>
         ) : null}
 
         <div>
-          <div className="section-label">News categories</div>
-          {a.categories?.length ? (
+          <div className="section-label">Top supply-chain categories (highest score)</div>
+          {topCategories.length ? (
             <div className="chips">
-              {a.categories.map((c) => (
+              {topCategories.map((c) => (
                 <span key={c.categoryId} className="chip" title={c.categoryDescription}>
                   {c.categoryLabel}
                   <span className="chip-score">{pct(c.score)}</span>
@@ -48,9 +63,16 @@ function ArticleCard({ row }: { row: ArticleReasoningDto }) {
               ))}
             </div>
           ) : (
-            <p className="empty-note">No categories above threshold.</p>
+            <p className="empty-note">No category signals detected for this article.</p>
           )}
         </div>
+
+        {a.body ? (
+          <div>
+            <div className="section-label">Full article text</div>
+            <p className="body-preview">{a.body}</p>
+          </div>
+        ) : null}
 
         <div className="route-impact">
           <div className="section-label">Shipping route impact (estimated)</div>
@@ -130,7 +152,7 @@ function ArticleCard({ row }: { row: ArticleReasoningDto }) {
               <div key={`${block.anchorMatchedName}-${block.latitude}`} className="vessel-block">
                 <div className="vessel-block-title">{block.anchorMatchedName}</div>
                 <div className="vessel-block-sub">
-                  {block.vesselCount} vessel(s) within {block.radiusKm} km ·{" "}
+                  {block.vesselCount} vessel(s) within {block.radiusNm} NM ·{" "}
                   {block.latitude.toFixed(4)}, {block.longitude.toFixed(4)}
                 </div>
                 {block.vessels?.length ? (
@@ -160,12 +182,13 @@ export default function App() {
   const [data, setData] = useState<ReasoningReportResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [radiusNm, setRadiusNm] = useState(RADIUS_DEFAULT);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const r = await fetchReasoningReport();
+      const r = await fetchReasoningReport(radiusNm);
       setData(r);
     } catch (e) {
       setData(null);
@@ -173,9 +196,14 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [radiusNm]);
 
+  const didInitialFetch = useRef(false);
   useEffect(() => {
+    if (didInitialFetch.current) {
+      return;
+    }
+    didInitialFetch.current = true;
     void load();
   }, [load]);
 
@@ -187,9 +215,45 @@ export default function App() {
           <div className="hackathon-badge">Live pipeline</div>
           <h1 className="neon-title">Reasoning agent report</h1>
           <p className="subtitle">
-            Live view of <code>/api/agent/reasoning-report</code> — classified news, place
-            mentions, resolved coordinates, and nearby vessels.
+            Live view of <code>/api/agent/reasoning-report?radiusNm=…</code> — classified news, place
+            mentions, resolved coordinates, and nearby vessels (radius in <strong>NM</strong> to vessel-agent).
           </p>
+          <div className="radius-panel" aria-label="Vessel search radius">
+            <label className="radius-label" htmlFor="radius-range">
+              Vessel search radius (nautical miles)
+            </label>
+            <div className="radius-row">
+              <input
+                id="radius-range"
+                className="radius-slider"
+                type="range"
+                min={RADIUS_MIN}
+                max={RADIUS_MAX}
+                step={1}
+                value={radiusNm}
+                onChange={(e) => setRadiusNm(Number(e.target.value))}
+              />
+              <input
+                className="radius-input"
+                type="number"
+                min={RADIUS_MIN}
+                max={RADIUS_MAX}
+                step={1}
+                value={radiusNm}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  if (!Number.isFinite(v)) return;
+                  setRadiusNm(Math.min(RADIUS_MAX, Math.max(RADIUS_MIN, Math.round(v))));
+                }}
+                aria-label="Radius in nautical miles"
+              />
+              <span className="radius-unit">NM</span>
+            </div>
+            <p className="radius-hint">
+              International NM (1 NM = 1.852 km). Allowed: {RADIUS_MIN}–{RADIUS_MAX} NM (see reasoning.pipeline on
+              server).
+            </p>
+          </div>
         </div>
         <div className="actions">
           <button type="button" className="btn btn-primary" onClick={() => void load()} disabled={loading}>
@@ -216,7 +280,8 @@ export default function App() {
       {data ? (
         <>
           <p className="summary">
-            <strong>{data.articleCount}</strong> article(s) in this run.
+            <strong>{data.articleCount}</strong> article(s) · vessel search radius{" "}
+            <strong>{data.searchRadiusNm}</strong> NM
           </p>
           <div className="articles">
             {data.articles.map((row, index) => (

@@ -10,6 +10,8 @@ public record ClassifiedArticleDto(
         String date,
         String dateTime,
         List<CategoryAssignmentDto> categories,
+        /** Short narrative: top themes + excerpt of the article text. */
+        String summary,
         ShippingRouteImpactDto shippingRouteImpact
 ) {
 }

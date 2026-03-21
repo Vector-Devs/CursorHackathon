@@ -13,6 +13,7 @@ public record ClassifiedArticleDto(
         String date,
         String dateTime,
         List<CategoryAssignmentDto> categories,
+        String summary,
         ShippingRouteImpactDto shippingRouteImpact
 ) {
 }
