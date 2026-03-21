@@ -1,45 +1,33 @@
 package com.enterpriseservice.web;
 
 import com.enterpriseservice.domain.Supplier;
-import com.enterpriseservice.service.MasterDataService;
-import jakarta.validation.Valid;
+import com.enterpriseservice.service.SupplierCatalogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
+/**
+ * Read-only suppliers API backed by mock_suppliers.json. Gulf region cities only.
+ * Suppliers are linked to European plants.
+ */
 @RestController
 @RequestMapping("/api/v1/suppliers")
 @RequiredArgsConstructor
 public class SupplierController {
 
-	private final MasterDataService masterDataService;
+	private final SupplierCatalogService supplierCatalogService;
 
 	@GetMapping
 	public List<Supplier> list() {
-		return masterDataService.listSuppliers();
+		return supplierCatalogService.listAll();
 	}
 
 	@GetMapping("/{id}")
 	public Supplier get(@PathVariable Long id) {
-		return masterDataService.getSupplier(id);
-	}
-
-	@PostMapping
-	@ResponseStatus(HttpStatus.CREATED)
-	public Supplier create(@Valid @RequestBody Supplier body) {
-		return masterDataService.createSupplier(body);
-	}
-
-	@PutMapping("/{id}")
-	public Supplier update(@PathVariable Long id, @RequestBody Supplier body) {
-		return masterDataService.updateSupplier(id, body);
-	}
-
-	@DeleteMapping("/{id}")
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void delete(@PathVariable Long id) {
-		masterDataService.deleteSupplier(id);
+		return supplierCatalogService.getById(id)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Supplier not found"));
 	}
 }

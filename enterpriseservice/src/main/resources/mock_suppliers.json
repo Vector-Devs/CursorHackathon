@@ -1,0 +1,47 @@
+[
+  {
+    "supplierName": "Dubai City Logistics & Trading",
+    "location": "Dubai City",
+    "latitude": "25.260000",
+    "longitude": "55.300000",
+    "contractStatus": "ACTIVE",
+    "plantIds": [
+      1,
+      2,
+      10
+    ]
+  },
+  {
+    "supplierName": "Dammam Raw Materials Corp",
+    "location": "Dammam",
+    "latitude": "26.420700",
+    "longitude": "50.088800",
+    "contractStatus": "ACTIVE",
+    "plantIds": [
+      3,
+      9
+    ]
+  },
+  {
+    "supplierName": "Salalah Maritime Supply Co",
+    "location": "Salalah",
+    "latitude": "17.019700",
+    "longitude": "54.089200",
+    "contractStatus": "PENDING_RENEWAL",
+    "plantIds": [
+      4,
+      12
+    ]
+  },
+  {
+    "supplierName": "Jeddah Gulf Petrochemicals",
+    "location": "Jeddah",
+    "latitude": "21.485800",
+    "longitude": "39.192500",
+    "contractStatus": "ACTIVE",
+    "plantIds": [
+      6,
+      11
+    ]
+  }
+]

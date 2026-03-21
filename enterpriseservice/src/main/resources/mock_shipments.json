@@ -1,0 +1,119 @@
+[
+  {
+    "shipmentItem": "Steel coils",
+    "quantity": 100.0,
+    "shipNumber": "ELBEBORG",
+    "status": "IN_TRANSIT",
+    "receiveDate": "2026-03-15T00:00:00Z",
+    "supplierIds": [
+      1
+    ],
+    "plantIds": [
+      1
+    ]
+  },
+  {
+    "shipmentItem": "Petrochemical feedstock",
+    "quantity": 125.0,
+    "shipNumber": "MARCUS",
+    "status": "DELIVERED",
+    "receiveDate": "2026-03-18T00:00:00Z",
+    "supplierIds": [
+      1
+    ],
+    "plantIds": [
+      2
+    ]
+  },
+  {
+    "shipmentItem": "Containerized machinery",
+    "quantity": 150.0,
+    "shipNumber": "WANHEIM",
+    "status": "DELIVERED",
+    "receiveDate": "2026-03-21T00:00:00Z",
+    "supplierIds": [
+      1
+    ],
+    "plantIds": [
+      10
+    ]
+  },
+  {
+    "shipmentItem": "Bulk polymers",
+    "quantity": 175.0,
+    "shipNumber": "CGAS JAGUAR",
+    "status": "IN_TRANSIT",
+    "receiveDate": "2026-03-24T00:00:00Z",
+    "supplierIds": [
+      2
+    ],
+    "plantIds": [
+      3
+    ]
+  },
+  {
+    "shipmentItem": "Refined petroleum",
+    "quantity": 200.0,
+    "shipNumber": "COSCO TRADER 224",
+    "status": "DELIVERED",
+    "receiveDate": "2026-03-27T00:00:00Z",
+    "supplierIds": [
+      2
+    ],
+    "plantIds": [
+      9
+    ]
+  },
+  {
+    "shipmentItem": "Steel coils",
+    "quantity": 225.0,
+    "shipNumber": "APL EAGLE 619",
+    "status": "DELIVERED",
+    "receiveDate": "2026-03-30T00:00:00Z",
+    "supplierIds": [
+      3
+    ],
+    "plantIds": [
+      4
+    ]
+  },
+  {
+    "shipmentItem": "Petrochemical feedstock",
+    "quantity": 250.0,
+    "shipNumber": "MSC FEEDER 936",
+    "status": "IN_TRANSIT",
+    "receiveDate": "2026-04-02T00:00:00Z",
+    "supplierIds": [
+      3
+    ],
+    "plantIds": [
+      12
+    ]
+  },
+  {
+    "shipmentItem": "Containerized machinery",
+    "quantity": 275.0,
+    "shipNumber": "ATLANTIC HERON 371",
+    "status": "DELIVERED",
+    "receiveDate": "2026-04-05T00:00:00Z",
+    "supplierIds": [
+      4
+    ],
+    "plantIds": [
+      6
+    ]
+  },
+  {
+    "shipmentItem": "Bulk polymers",
+    "quantity": 300.0,
+    "shipNumber": "WAN HAI VOYAGER 995",
+    "status": "DELIVERED",
+    "receiveDate": "2026-04-08T00:00:00Z",
+    "supplierIds": [
+      4
+    ],
+    "plantIds": [
+      11
+    ]
+  }
+]
