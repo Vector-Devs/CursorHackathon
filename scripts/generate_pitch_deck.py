@@ -31,6 +31,7 @@ CNBC, etc.) for investor diligence — situation evolves; verify latest facts be
 """
 
 import re
+import sys
 from pathlib import Path
 
 from pptx import Presentation
@@ -60,6 +61,176 @@ W = Inches(13.333)  # 16:9
 H = Inches(7.5)
 M = Inches(0.55)
 TOP_BAR = Inches(0.18)
+
+# Logo (top-right): cover larger than inner slides
+LOGO_W_COVER = Inches(1.72)
+LOGO_W_SLIDE = Inches(1.02)
+
+
+def _render_logo_png(path: Path) -> None:
+    """Rasterize the Riscon compass/radar mark for embedding in PPTX (python-pptx needs PNG).
+
+    Transparent outside the mark so the top-right corner matches whatever slide background
+    and decorative shapes sit behind that area.
+    """
+    from PIL import Image, ImageDraw
+
+    size = 512
+    cx, cy = 256, 256
+    r = 152
+    im = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    bb = [cx - r, cy - r, cx + r, cy + r]
+
+    d.pieslice(bb, start=270, end=360, fill=(34, 227, 255, 41))
+    d.ellipse(bb, outline=(42, 58, 88, 255), width=2)
+    d.ellipse(bb, outline=(34, 227, 255, 46), width=1)
+
+    w_main = 3
+    d.line([(cx, cy), (cx, 108)], fill=(34, 227, 255, 140), width=w_main)
+    d.line([(cx, cy), (cx, 404)], fill=(148, 163, 184, 255), width=w_main)
+    d.line([(cx, cy), (108, cy)], fill=(148, 163, 184, 255), width=w_main)
+    d.line([(cx, cy), (404, cy)], fill=(148, 163, 184, 255), width=w_main)
+
+    wi = 2
+    d.line([(cx, cy), (353, 158)], fill=(71, 85, 105, 230), width=wi)
+    d.line([(cx, cy), (353, 353)], fill=(255, 45, 149, 107), width=wi)
+    d.line([(cx, cy), (158, 353)], fill=(71, 85, 105, 230), width=wi)
+    d.line([(cx, cy), (158, 158)], fill=(71, 85, 105, 230), width=wi)
+
+    d.ellipse([cx - 22, cy - 22, cx + 22, cy + 22], fill=(15, 23, 42, 220), outline=(34, 227, 255, 255), width=2)
+    d.ellipse([cx - 6, cy - 6, cx + 6, cy + 6], fill=(34, 227, 255, 255))
+
+    def _dot(x: float, y: float, rad: int, fill: tuple, outline=None, ow=1):
+        d.ellipse([x - rad, y - rad, x + rad, y + rad], fill=fill, outline=outline, width=ow)
+
+    _dot(256, 104, 7, (71, 85, 105, 255), (30, 41, 59, 255), 1)
+    _dot(408, 256, 7, (34, 227, 255, 255), (15, 23, 42, 255), 1)
+    _dot(256, 408, 7, (204, 255, 0, 140), (30, 41, 59, 255), 1)
+    _dot(104, 256, 7, (71, 85, 105, 255), (30, 41, 59, 255), 1)
+    for px, py in [(158, 158), (353, 158), (353, 353), (158, 353)]:
+        _dot(px, py, 5, (71, 85, 105, 217))
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    im.save(path, "PNG")
+
+
+def ensure_logo_png(out_dir: Path) -> Path | None:
+    """Write pitch-deck/riscon-mark-slide.png for slide logos. Returns None if Pillow missing."""
+    png = out_dir / "riscon-mark-slide.png"
+    try:
+        from PIL import Image  # noqa: F401
+    except ImportError:
+        print("WARN: Pillow not installed; pitch deck will have no logo. pip install Pillow", file=sys.stderr)
+        return None
+    _render_logo_png(png)
+    return png
+
+
+def add_slide_logo(slide, logo_png: Path, *, large: bool) -> None:
+    """Top-right, last shape so it sits above slide background and artwork."""
+    if not logo_png.is_file():
+        return
+    w = LOGO_W_COVER if large else LOGO_W_SLIDE
+    left = W - M - w
+    top = M
+    slide.shapes.add_picture(str(logo_png), left, top, width=w, height=w)
+
+# Per-slide legend (bottom-right): abbreviations used in deck copy — longest keys matched first.
+ACRONYM_DEFINITIONS: dict[str, str] = {
+    "4PL": "Fourth-party logistics",
+    "3PL": "Third-party logistics",
+    "ACV": "Annual contract value",
+    "AI": "Artificial intelligence",
+    "API": "Application programming interface",
+    "CAC": "Customer acquisition cost",
+    "CPO": "Chief procurement officer",
+    "CP&R": "Commercial products & raw materials (industrial)",
+    "EU": "European Union",
+    "GTM": "Go-to-market",
+    "ICP": "Ideal customer profile",
+    "IHK": "Chamber of Commerce and Industry (Germany)",
+    "LLM": "Large language model",
+    "TAM": "Total addressable market",
+    "UI": "User interface",
+    "US": "United States",
+    "VDMA": "German Engineering Federation (Verband)",
+}
+
+
+def _strip_md_bold(s: str) -> str:
+    return re.sub(r"\*\*([^*]+)\*\*", r"\1", s)
+
+
+def _scan_acronyms_in_text(text: str) -> list[tuple[str, str]]:
+    """Return sorted (abbreviation, definition) pairs for acronyms present in text."""
+    t = _strip_md_bold(text)
+    found: dict[str, str] = {}
+    for abbr in sorted(ACRONYM_DEFINITIONS.keys(), key=len, reverse=True):
+        if abbr in found:
+            continue
+        esc = re.escape(abbr)
+        # Optional trailing "s" for plural (3PLs, APIs); avoid matching inside longer words.
+        if re.search(r"(?<![A-Za-z0-9])" + esc + r"s?(?![A-Za-z0-9])", t, re.IGNORECASE):
+            found[abbr] = ACRONYM_DEFINITIONS[abbr]
+    return sorted(found.items(), key=lambda x: x[0].upper())
+
+
+def add_slide_legend(slide, entries: list[tuple[str, str]]) -> None:
+    """Small glossary bottom-right; skip if empty."""
+    if not entries:
+        return
+    lines = [f"{abbr} — {definition}" for abbr, definition in entries]
+    legend_pt = 8
+    line_h = Inches(0.118)
+    pad = Inches(0.06)
+    legend_w = Inches(4.85)
+    legend_h = pad * 2 + line_h * len(lines)
+    legend_left = W - M - legend_w
+    legend_top = H - M - legend_h
+
+    box = slide.shapes.add_textbox(legend_left, legend_top, legend_w, legend_h)
+    tf = box.text_frame
+    tf.word_wrap = True
+    tf.auto_size = MSO_AUTO_SIZE.NONE
+    tf.vertical_anchor = MSO_ANCHOR.BOTTOM
+    for i, line in enumerate(lines):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        p.text = line
+        p.alignment = PP_ALIGN.RIGHT
+        p.space_after = Pt(0)
+        p.line_spacing = 1.0
+        for r in p.runs:
+            r.font.size = Pt(legend_pt)
+            r.font.name = "Calibri"
+            r.font.color.rgb = TEXT_TERTIARY
+
+
+def _bullet_slide_text_blob(
+    title: str,
+    kicker: str | None,
+    lines: list[str],
+    lines_with_levels: list[tuple[str, int]] | None,
+) -> str:
+    parts = [title, kicker or ""]
+    if lines_with_levels is not None:
+        for line, _ in lines_with_levels:
+            parts.append(line)
+    else:
+        parts.extend(lines)
+    return " ".join(parts)
+
+
+def _title_slide_text_for_legend() -> str:
+    return (
+        "HACKATHON DEMO RIS CON SUPPLY CHAIN RISK COMMAND CENTER "
+        "Maritime & logistics signals LIVE SIGNALS PROBABILITY ENTERPRISE DATA "
+        "CursorHackathon Vector-Devs"
+    )
+
+
+def _thank_you_slide_text_for_legend() -> str:
+    return "THANK YOU QUESTIONS github.com/Vector-Devs/CursorHackathon"
 
 
 def add_full_bleed_bg(slide, color: RGBColor) -> None:
@@ -224,11 +395,31 @@ def bullet_slide(
     body_pt: int = 14,
     ppt_bullets: bool = False,
     lines_with_levels: list[tuple[str, int]] | None = None,
+    compact_header: bool = False,
+    logo_png: Path | None = None,
 ):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     add_full_bleed_bg(slide, BG_PAGE)
     add_hackathon_bg_extras(slide, cover=False)
     add_accent_bar(slide)
+
+    blob = _bullet_slide_text_blob(title, kicker, lines, lines_with_levels)
+    legend_entries = _scan_acronyms_in_text(blob)
+    legend_reserve = Inches(0.72) if legend_entries else Inches(0)
+
+    # Tighter title band + smaller inner padding → taller content card (dense slides).
+    if compact_header:
+        title_top = Inches(0.78)
+        title_h = Inches(0.72)
+        title_size = 30
+        body_top = Inches(1.56)  # ~0.06" gap below title
+        inner_tb_sub = Inches(0.48)
+    else:
+        title_top = Inches(0.78)
+        title_h = Inches(1.0)
+        title_size = 34
+        body_top = Inches(1.88)
+        inner_tb_sub = Inches(0.6)
 
     if kicker:
         textbox(
@@ -248,24 +439,24 @@ def bullet_slide(
     textbox(
         slide,
         M,
-        Inches(0.78),
+        title_top,
         W - 2 * M,
-        Inches(1.0),
+        title_h,
         title.upper(),
-        size=34,
+        size=title_size,
         bold=True,
         color=TEXT_PRIMARY,
         font="Calibri Light",
     )
 
-    body_top = Inches(1.88)
-    body_h = H - body_top - M
-    _top_in = 1.88
-    _h_in = 7.5 - 0.55 - _top_in
+    # Length math yields EMU (int); convert to inches for helpers that take floats.
+    body_h = H - body_top - M - legend_reserve
+    _top_in = body_top / 914400.0
+    _h_in = body_h / 914400.0
     add_left_slide_accent(slide, _top_in, _h_in)
     add_card(slide, M, body_top, W - 2 * M, body_h, glow=True)
 
-    tb = slide.shapes.add_textbox(M + Inches(0.42), body_top + Inches(0.38), W - 2 * M - Inches(0.78), body_h - Inches(0.6))
+    tb = slide.shapes.add_textbox(M + Inches(0.42), body_top + Inches(0.38), W - 2 * M - Inches(0.78), body_h - inner_tb_sub)
     tf = tb.text_frame
     tf.word_wrap = True
     if lines_with_levels is not None:
@@ -274,10 +465,13 @@ def bullet_slide(
         populate_tf_markdown(tf, lines, body_pt=body_pt)
     if ppt_bullets:
         apply_textframe_bullets(tf)
+    add_slide_legend(slide, legend_entries)
+    if logo_png:
+        add_slide_logo(slide, logo_png, large=False)
     return slide
 
 
-def title_slide(prs):
+def title_slide(prs, logo_png: Path | None = None):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     add_full_bleed_bg(slide, BG_PAGE)
     add_hackathon_bg_extras(slide, cover=True)
@@ -388,6 +582,9 @@ def title_slide(prs):
         color=TEXT_TERTIARY,
         font="Calibri",
     )
+    add_slide_legend(slide, _scan_acronyms_in_text(_title_slide_text_for_legend()))
+    if logo_png:
+        add_slide_logo(slide, logo_png, large=True)
     return slide
 
 
@@ -395,13 +592,14 @@ def main():
     out_dir = Path(__file__).resolve().parent.parent / "pitch-deck"
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / "CursorHackathon-Pitch.pptx"
+    logo_png = ensure_logo_png(out_dir)
 
     prs = Presentation()
     prs.slide_width = W
     prs.slide_height = H
 
     # Cover
-    title_slide(prs)
+    title_slide(prs, logo_png=logo_png)
 
     # Slide 1 — Problem (~40s): concise bullets + real PPTX bullets; facts under point 1 (researched)
     bullet_slide(
@@ -411,6 +609,7 @@ def main():
         kicker="1 / 5",
         body_pt=15,
         ppt_bullets=True,
+        compact_header=True,
         lines_with_levels=[
             (
                 "**No live link** — alerts & spreadsheets aren’t tied to plants, suppliers, or in‑transit goods.",
@@ -453,6 +652,7 @@ def main():
                 1,
             ),
         ],
+        logo_png=logo_png,
     )
 
     # Slide 2 — The solution — Riscon: wedge + definition + grouped customer gains (nested bullets)
@@ -487,6 +687,7 @@ def main():
                 0,
             ),
         ],
+        logo_png=logo_png,
     )
 
     # Slide 3 — Business + GTM: grouped bullets
@@ -521,6 +722,7 @@ def main():
             ("**3PL** partners — co-branded **shipper risk** widget.", 1),
             ("**One public case** — “alert → action in minutes.” [EDIT: your distribution].", 1),
         ],
+        logo_png=logo_png,
     )
 
     # Slide 4 — Why we (team only)
@@ -555,6 +757,7 @@ def main():
                 2,
             ),
         ],
+        logo_png=logo_png,
     )
 
     # Slide 5 — Why now (market + geopolitical urgency)
@@ -580,6 +783,7 @@ def main():
                 1,
             ),
         ],
+        logo_png=logo_png,
     )
 
     # Thank you
@@ -626,6 +830,9 @@ def main():
         align=PP_ALIGN.CENTER,
         bold=True,
     )
+    add_slide_legend(slide, _scan_acronyms_in_text(_thank_you_slide_text_for_legend()))
+    if logo_png:
+        add_slide_logo(slide, logo_png, large=False)
 
     prs.save(out_path)
     print(f"Wrote {out_path}")
