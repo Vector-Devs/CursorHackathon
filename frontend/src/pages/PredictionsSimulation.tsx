@@ -123,7 +123,7 @@ export function PredictionsSimulation() {
                   color: 'var(--accent)',
                 }}
               >
-                AI GENERATED
+                AI PREDICTED
               </span>
             </div>
           </div>
