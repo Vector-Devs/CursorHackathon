@@ -1,28 +1,75 @@
 # Railway Deployment Guide
 
-Deploy the Riscon stack to Railway using pre-built Docker images from Docker Hub (`balajimurugesan2016/riscon-*`).
+Two deployment options:
 
-## Prerequisites
-
-1. **Push images to Docker Hub** (if not already done):
-   ```bash
-   docker login
-   ./scripts/push-to-dockerhub.sh
-   ```
-
-2. **Railway CLI** (required for CLI deploy):
-   ```bash
-   npm i -g @railway/cli
-   railway login
-   ```
+- **Option A (recommended on ARM Mac):** Deploy from GitHub — Railway builds from Dockerfile on their amd64 runners. No local Docker build.
+- **Option B:** Pre-built Docker Hub images — requires building on amd64 (Intel/AMD machine or GitHub Actions).
 
 ---
 
-## Option A: Deploy via CLI (recommended)
+## Option A: Deploy from GitHub (no local build)
 
-From the repo root:
+Railway builds from your repo on linux/amd64. No Docker Hub or local build needed.
+
+1. Push the repo to GitHub.
+2. In Railway: New Project → **Deploy from GitHub**.
+3. Add 7 services, each from the same repo with different **Root Directory** and **Dockerfile path**:
+
+| Service | Root Directory | Dockerfile |
+|---------|----------------|------------|
+| mockservices | `mockServices` | `Dockerfile` |
+| enterpriseservice | `enterpriseservice` | `Dockerfile` |
+| location-service | `agents/location-service` | `Dockerfile` |
+| ship-mobility-service | `agents/ship-mobility-service` | `Dockerfile` |
+| news-agent | `agents/news-agent` | `Dockerfile` |
+| probability-service | `agents/probability-service` | `Dockerfile` |
+| frontend | `frontend` | `Dockerfile` |
+
+4. Set variables per service (see variable tables under "Deploy from Docker Hub" below).
+5. Add public domains for each service.
+
+---
+
+## Option B: Deploy from Docker Hub
+
+**Note:** Railway needs linux/amd64 images. On ARM Mac (M1/M2/M3), `--platform linux/amd64` is slow or hangs due to emulation. Use an amd64 machine or GitHub Actions to build, or use Option A instead.
+
+### Manual build and push (on amd64 machine or GitHub Actions)
+
+From repo root after `docker login`:
 
 ```bash
+docker build -t balajimurugesan2016/riscon-frontend:latest ./frontend
+docker push balajimurugesan2016/riscon-frontend:latest
+
+docker build -t balajimurugesan2016/riscon-mockservices:latest ./mockServices
+docker push balajimurugesan2016/riscon-mockservices:latest
+
+docker build -t balajimurugesan2016/riscon-enterpriseservice:latest ./enterpriseservice
+docker push balajimurugesan2016/riscon-enterpriseservice:latest
+
+docker build -t balajimurugesan2016/riscon-location-service:latest ./agents/location-service
+docker push balajimurugesan2016/riscon-location-service:latest
+
+docker build -t balajimurugesan2016/riscon-ship-mobility-service:latest ./agents/ship-mobility-service
+docker push balajimurugesan2016/riscon-ship-mobility-service:latest
+
+docker build -t balajimurugesan2016/riscon-news-agent:latest ./agents/news-agent
+docker push balajimurugesan2016/riscon-news-agent:latest
+
+docker build -t balajimurugesan2016/riscon-probability-service:latest ./agents/probability-service
+docker push balajimurugesan2016/riscon-probability-service:latest
+```
+
+On an amd64 machine these produce linux/amd64 images.
+
+### Deploy via CLI (uses Docker Hub images)
+
+Install Railway CLI and deploy:
+
+```bash
+npm i -g @railway/cli
+railway login
 ./scripts/railway-deploy.sh [project-name]
 ```
 
@@ -51,20 +98,12 @@ railway variable set -s news-agent ANTHROPIC_API_KEY=your-key
 railway domain -s frontend
 ```
 
----
-
-## Option B: Deploy via Dashboard
-
-### Step 1: Create Railway Project
+### Deploy via Dashboard (uses Docker Hub images)
 
 1. Go to [railway.app](https://railway.app) and create a new project.
 2. Add **7 services** (one per app). For each service, choose **Deploy from Docker Image** (not GitHub).
 
----
-
-## Step 2: Configure Each Service
-
-Add services with **Source: Docker Image**. Use the image paths below.
+Configure each service with **Source: Docker Image**. Use the image paths below:
 
 ### Service 1: mockservices (deploy first)
 
@@ -214,6 +253,7 @@ Or use the Railway dashboard: Service → **Redeploy**.
 
 ## Troubleshooting
 
+- **Docker build hangs or is very slow with `--platform linux/amd64`:** Common on ARM Mac (M1/M2/M3) because of QEMU emulation. Use "Deploy from GitHub" (Option A) so Railway builds on amd64, or build on an amd64 machine / GitHub Actions.
 - **502 / connection refused:** Ensure dependent services are deployed and running. Check variable URLs (no trailing slash).
 - **WebSocket fails:** Ensure `PROBABILITY_SERVICE_URL` uses `https://` when the frontend is served over HTTPS.
 - **news-agent errors:** Verify `ANTHROPIC_API_KEY` is set and valid.
