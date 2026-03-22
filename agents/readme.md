@@ -30,8 +30,8 @@ flowchart TB
   end
 
   B --> Vite
-  Vite -->|"/api/v1/*"| E
-  Vite -->|"/api/probability" + WebSocket "/ws"| P
+  Vite -->|HTTP /api/v1/*| E
+  Vite -->|HTTP /api/probability and WS /ws| P
 
   P --> N
   P --> V
@@ -198,9 +198,9 @@ sequenceDiagram
     end
   end
 
-  Note over PROB: ProbabilityService: match article locations to ship cities + speed weights; apply Gulf floor; build ProbabilityResponse
+  Note over PROB: ProbabilityService — match article locations to ship cities + speed weights; apply Gulf floor; build ProbabilityResponse
 
-  Note over PROB: ProbabilityPushService: latest.set(response); queue.offer; consumer convertAndSend /topic/probability
+  Note over PROB: ProbabilityPushService — latest.set, queue.offer, consumer convertAndSend /topic/probability
 
   PROB-->>UI: STOMP broadcast to subscribers (topic /topic/probability, endpoint /ws)
 
@@ -209,7 +209,7 @@ sequenceDiagram
   alt snapshot exists
     PROB-->>UI: 200 ProbabilityResponse JSON
   else no successful run yet
-    PROB-->>UI: 503 { "message": "No probability data yet..." }
+    PROB-->>UI: 503 No probability data yet (message body)
   end
 ```
 
