@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Riscon: compass + radar + network nodes + wordmark. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 200" role="img" aria-label="Riscon">
+  <rect width="840" height="200" fill="none"/>
+  <g transform="translate(12, 12) scale(0.34375)">
+    <rect width="512" height="512" rx="88" fill="#060812"/>
+    <circle cx="256" cy="256" r="152" fill="none" stroke="#2A3A58" stroke-width="2"/>
+    <circle cx="256" cy="256" r="152" fill="none" stroke="#22E3FF" stroke-width="1" opacity="0.18"/>
+    <path fill="#22E3FF" fill-opacity="0.16" d="M 256 256 L 256 104 A 152 152 0 0 1 408 256 Z"/>
+    <g stroke-width="2.5" stroke-linecap="round">
+      <line x1="256" y1="256" x2="256" y2="108" stroke="#22E3FF" opacity="0.55"/>
+      <line x1="256" y1="256" x2="256" y2="404" stroke="#94a3b8"/>
+      <line x1="256" y1="256" x2="108" y2="256" stroke="#94a3b8"/>
+      <line x1="256" y1="256" x2="404" y2="256" stroke="#94a3b8"/>
+    </g>
+    <g stroke-width="1.75" stroke-linecap="round">
+      <line x1="256" y1="256" x2="353.6" y2="158.4" stroke="#475569" opacity="0.9"/>
+      <line x1="256" y1="256" x2="353.6" y2="353.6" stroke="#FF2D95" opacity="0.42"/>
+      <line x1="256" y1="256" x2="158.4" y2="353.6" stroke="#475569" opacity="0.9"/>
+      <line x1="256" y1="256" x2="158.4" y2="158.4" stroke="#475569" opacity="0.9"/>
+    </g>
+    <circle cx="256" cy="256" r="22" fill="#0f172a" stroke="#22E3FF" stroke-width="2.5"/>
+    <circle cx="256" cy="256" r="6" fill="#22E3FF"/>
+    <circle cx="256" cy="104" r="7" fill="#475569" stroke="#1e293b" stroke-width="1"/>
+    <circle cx="408" cy="256" r="7" fill="#22E3FF" stroke="#0f172a" stroke-width="1"/>
+    <circle cx="256" cy="408" r="7" fill="#CCFF00" fill-opacity="0.55" stroke="#1e293b" stroke-width="1"/>
+    <circle cx="104" cy="256" r="7" fill="#475569" stroke="#1e293b" stroke-width="1"/>
+    <circle cx="158.4" cy="158.4" r="5" fill="#475569" opacity="0.85"/>
+    <circle cx="353.6" cy="158.4" r="5" fill="#475569" opacity="0.85"/>
+    <circle cx="353.6" cy="353.6" r="5" fill="#475569" opacity="0.85"/>
+    <circle cx="158.4" cy="353.6" r="5" fill="#475569" opacity="0.85"/>
+  </g>
+  <text x="210" y="112" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="52" font-weight="600" letter-spacing="-0.03em" fill="#f1f5f9">RIS</text>
+  <text x="298" y="112" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="52" font-weight="600" letter-spacing="-0.03em" fill="#22E3FF">CON</text>
+  <text x="210" y="148" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="10" font-weight="500" letter-spacing="0.12em" fill="#7A88A3">SUPPLY CHAIN RISK COMMAND CENTER</text>
+</svg>

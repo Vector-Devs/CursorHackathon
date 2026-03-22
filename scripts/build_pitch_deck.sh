@@ -19,6 +19,10 @@ if ! python3 -c "import pptx" 2>/dev/null; then
   echo "Installing python-pptx (one-time)..."
   python3 -m pip install --quiet python-pptx
 fi
+if ! python3 -c "import PIL" 2>/dev/null; then
+  echo "Installing Pillow for deck logo PNG (one-time)..."
+  python3 -m pip install --quiet Pillow
+fi
 
 echo "Generating pitch deck..."
 python3 "$ROOT/scripts/generate_pitch_deck.py"
