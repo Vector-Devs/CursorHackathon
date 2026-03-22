@@ -1,0 +1,105 @@
+# Render Blueprint for Riscon stack
+# Deploy: New Project -> New Blueprint Instance -> Connect repo -> Select this branch
+# Services communicate over Render's private network (http://servicename:10000)
+# Frontend gets public URLs via RENDER_EXTERNAL_URL from dependent services
+
+services:
+  - type: web
+    runtime: docker
+    name: mockservices
+    dockerfilePath: ./mockServices/Dockerfile
+    dockerContext: ./mockServices
+    plan: free
+    envVars:
+      - key: PORT
+        value: "10000"
+
+  - type: web
+    runtime: docker
+    name: enterpriseservice
+    dockerfilePath: ./enterpriseservice/Dockerfile
+    dockerContext: ./enterpriseservice
+    plan: free
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: MOCK_SERVICES_BASE_URL
+        value: "http://mockservices:10000"
+
+  - type: web
+    runtime: docker
+    name: location-service
+    dockerfilePath: ./agents/location-service/Dockerfile
+    dockerContext: ./agents/location-service
+    plan: free
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: ENTERPRISE_SERVICE_URL
+        value: "http://enterpriseservice:10000"
+      - key: MOCK_SERVICES_URL
+        value: "http://mockservices:10000"
+
+  - type: web
+    runtime: docker
+    name: ship-mobility-service
+    dockerfilePath: ./agents/ship-mobility-service/Dockerfile
+    dockerContext: ./agents/ship-mobility-service
+    plan: free
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: ENTERPRISE_SERVICE_URL
+        value: "http://enterpriseservice:10000"
+      - key: MOCK_SERVICES_URL
+        value: "http://mockservices:10000"
+
+  - type: web
+    runtime: docker
+    name: news-agent
+    dockerfilePath: ./agents/news-agent/Dockerfile
+    dockerContext: ./agents/news-agent
+    plan: free
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: MOCK_SERVICES_URL
+        value: "http://mockservices:10000"
+      - key: LOCATION_SERVICE_URL
+        value: "http://location-service:10000"
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+  - type: web
+    runtime: docker
+    name: probability-service
+    dockerfilePath: ./agents/probability-service/Dockerfile
+    dockerContext: ./agents/probability-service
+    plan: free
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: NEWS_AGENT_URL
+        value: "http://news-agent:10000"
+      - key: SHIP_MOBILITY_URL
+        value: "http://ship-mobility-service:10000"
+
+  - type: web
+    runtime: docker
+    name: frontend
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    plan: free
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: API_BACKEND_URL
+        fromService:
+          name: enterpriseservice
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: PROBABILITY_SERVICE_URL
+        fromService:
+          name: probability-service
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
