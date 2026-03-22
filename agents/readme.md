@@ -2,7 +2,7 @@
 
 ## Architecture
 
-High-level view of how the **CursorHackathon** stack fits together: shared mock APIs and enterprise master data, specialized agents, orchestration, and the React UI. The **primary** user-facing app is **`frontend/`** (Vite + React). **`reasoning-ui/`** is a **small test harness** for manually hitting agent APIs during development (not the product UI). Ports are **local defaults** (see [Port map](#port-map-local-defaults) below).
+High-level view of how the **CursorHackathon** stack fits together: shared mock APIs, **enterpriseservice** master data, four Spring Boot **agents** under `agents/`, and the React **`frontend/`** (Vite). The browser talks to **enterpriseservice** for `/api/v1/*` and to **probability-service** for REST + WebSocket push. Ports below are **local defaults**; see [Port map](#port-map-local-defaults) and [`docker-compose.yml`](../docker-compose.yml).
 
 ```mermaid
 flowchart TB
@@ -10,8 +10,8 @@ flowchart TB
     B["Browser"]
   end
 
-  subgraph UI["frontend — :5173"]
-    Vite["Vite dev server\n(configure API / proxy to agents)"]
+  subgraph UI["frontend — :5173 dev / :3000 Docker"]
+    Vite["Vite or container\nproxy to 8085 + 8097"]
   end
 
   subgraph Mock["mockServices — :8082"]
@@ -19,37 +19,34 @@ flowchart TB
   end
 
   subgraph Ent["enterpriseservice — :8085"]
-    E["Plants, suppliers, shipments\norchestration snapshot → mock"]
+    E["Plants, suppliers, shipments\n(orchestration → mock)"]
   end
 
-  subgraph Agents["Spring Boot agents"]
+  subgraph Agents["Spring Boot agents (this folder)"]
     N["news-agent — :8090"]
-    L["locations-agent — :8091"]
-    V["vessel-agent — :8092"]
-    R["reasoning-agent — :8093"]
-    S["supply-chain-risk-agent — :8094"]
+    L["location-service — :8095"]
+    V["ship-mobility-service — :8096"]
+    P["probability-service — :8097"]
   end
 
   B --> Vite
-  Vite -->|"/api/agent/supply-chain-risk-report"| S
-  Vite -->|"/api/* (other)"| R
+  Vite -->|"/api/v1/*"| E
+  Vite -->|"/api/probability" + WebSocket "/ws"| P
 
-  R --> N
-  R --> L
-  R --> V
-  R --> M
+  P --> N
+  P --> V
   N --> M
+  N --> L
+  L --> E
   L --> M
+  V --> E
   V --> M
-
-  S --> E
-  S --> R
   E --> M
 ```
 
 ### UML (component & dependency view)
 
-Same stack as a **UML-style** diagram: each box is a deployable **component** (Spring Boot app or static UI); arrows are **HTTP** dependencies (clients call servers). Stereotypes note default ports. The browser app shown here is **`frontend`**; **`reasoning-ui`** is omitted (same pattern, test-only).
+Each box is a deployable **component**; arrows are **HTTP** (or **WS** where noted).
 
 ```mermaid
 classDiagram
@@ -70,204 +67,258 @@ classDiagram
   class NewsAgent {
     <<component>>
     port 8090
+    AI classification
   }
-  class LocationsAgent {
+  class LocationService {
     <<component>>
-    port 8091
+    port 8095
+    cities / summary from enterprise + mock
   }
-  class VesselAgent {
+  class ShipMobilityService {
     <<component>>
-    port 8092
+    port 8096
+    fleet + places context
   }
-  class ReasoningAgent {
+  class ProbabilityService {
     <<component>>
-    port 8093
-    orchestration facade
-  }
-  class SupplyChainRiskAgent {
-    <<component>>
-    port 8094
-    portfolio risk facade
+    port 8097
+    scores + WebSocket push
   }
 
   class Frontend {
     <<component>>
-    port 5173
+    port 5173 or 3000
     main React UI
   }
 
-  Frontend ..> ReasoningAgent : HTTP /api
-  Frontend ..> SupplyChainRiskAgent : HTTP /api
+  Frontend ..> EnterpriseService : HTTP /api/v1
+  Frontend ..> ProbabilityService : HTTP /api/probability
+  Frontend ..> ProbabilityService : WS /ws
 
-  ReasoningAgent ..> NewsAgent
-  ReasoningAgent ..> LocationsAgent
-  ReasoningAgent ..> VesselAgent
-  ReasoningAgent ..> MockServices
+  ProbabilityService ..> NewsAgent
+  ProbabilityService ..> ShipMobilityService
 
   NewsAgent ..> MockServices
-  LocationsAgent ..> MockServices
-  VesselAgent ..> MockServices
+  NewsAgent ..> LocationService
 
-  SupplyChainRiskAgent ..> EnterpriseService
-  SupplyChainRiskAgent ..> ReasoningAgent
+  LocationService ..> EnterpriseService
+  LocationService ..> MockServices
+
+  ShipMobilityService ..> EnterpriseService
+  ShipMobilityService ..> MockServices
 
   EnterpriseService ..> MockServices
 ```
 
-### UML (sequence): supply-chain risk report
+### UML (sequence): probability refresh
 
-Typical flow for **GET** `/api/agent/supply-chain-risk-report` (optional `radiusNm`) from the **browser** via **`frontend`** (or the optional **`reasoning-ui`** test harness with a dev proxy). Implementation order in [`SupplyChainRiskService#buildReport`](supply-chain-risk-agent/src/main/java/com/hackathon/supplychainrisk/service/SupplyChainRiskService.java): **reasoning** report first, then **enterprise** plant list and **per-plant** detail, then **in-process** analysis. The **reasoning** block mirrors [`ReasoningPipelineService`](reasoning-agent/src/main/java/com/hackathon/reasoningagent/service/ReasoningPipelineService.java) (news → catalog → per-mention resolve → vessels).
+**probability-service** pulls **classified news** (AI) and **ship mobility**, merges them into **probability items**, caches the latest snapshot, and **broadcasts** on **`/topic/probability`** (STOMP). **`GET /api/probability`** returns the last successful snapshot (or **503** if none yet). Scheduling is implemented in [`ProbabilityPushService`](probability-service/src/main/java/com/hackathon/probability/service/ProbabilityPushService.java).
+
+Implementation detail for the diagram below: **location-service** aggregation is [`LocationAggregationService#getLocationSummary`](location-service/src/main/java/com/hackathon/locationservice/service/LocationAggregationService.java); **ship-mobility** is [`ShipMobilityService#getShipMobility`](ship-mobility-service/src/main/java/com/hackathon/shipmobility/service/ShipMobilityService.java); mock clients are [`location-service/MockServicesClient`](location-service/src/main/java/com/hackathon/locationservice/client/MockServicesClient.java) and [`ship-mobility-service/MockServicesClient`](ship-mobility-service/src/main/java/com/hackathon/shipmobility/client/MockServicesClient.java).
 
 ```mermaid
 sequenceDiagram
   autonumber
   actor User
   participant UI as frontend
-  participant SCR as supply-chain-risk-agent
-  participant RA as reasoning-agent
+  participant PROB as probability-service
   participant NA as news-agent
-  participant LA as locations-agent
-  participant VA as vessel-agent
+  participant LS as location-service
+  participant SM as ship-mobility-service
   participant ENT as enterpriseservice
   participant MOCK as mockServices
 
-  User->>UI: request supply-chain risk report
-  UI->>SCR: GET /api/agent/supply-chain-risk-report
-  Note over SCR: fetch reasoning report first
-  SCR->>RA: GET /api/agent/reasoning-report
+  Note over PROB: @Scheduled produce() calls ProbabilityService; result queued; background consumer STOMP-send to /topic/probability (see WebSocketConfig /ws + SockJS)
+
+  PROB->>NA: GET /api/agent/classified-news
 
   rect rgb(245, 245, 252)
-    Note over RA, MOCK: Reasoning pipeline (simplified)
-    RA->>NA: GET /api/agent/classified-news
+    Note over NA,MOCK: news-agent: mock articles + city list for classification context
     NA->>MOCK: POST /api/v1/article/getArticles
     MOCK-->>NA: articles JSON
-    NA-->>RA: classified articles
-    RA->>MOCK: GET /api/v1/places
-    MOCK-->>RA: place catalog
-    loop each article, mentions, and distinct lat/lon
-      RA->>LA: GET /api/agent/resolve-location?name=…
-      LA->>MOCK: read place catalog / match
-      MOCK-->>LA: place data
-      LA-->>RA: ResolvedLocationDto
-      RA->>VA: GET /api/agent/vessels-nearby?…
-      VA->>MOCK: POST /api/vessels_operations/get-vessels-by-area
-      MOCK-->>VA: vessels in radius
-      VA-->>RA: VesselsNearbyDto
+
+    NA->>LS: GET /api/location/cities
+
+    rect rgb(252, 248, 240)
+      Note over LS,MOCK: location-service builds summary; /cities returns sorted unique city names only
+      par LocationAggregationService parallel calls (virtual threads)
+        LS->>ENT: GET /api/v1/plants
+        ENT-->>LS: PlantDto[]
+      and
+        LS->>ENT: GET /api/v1/suppliers
+        ENT-->>LS: SupplierDto[]
+      and
+        LS->>ENT: GET /api/v1/shipments
+        ENT-->>LS: ShipmentDto[]
+      end
+
+      Note over LS: Add cities from plant.location and supplier.location strings
+
+      loop each non-DELIVERED shipment (shipNumber)
+        LS->>MOCK: GET /api/v1/vessels/by-names?names=...
+        MOCK-->>LS: VesselDto[] (positions)
+      end
+
+      loop each vessel with parseable lat/lon
+        LS->>MOCK: POST /api/vessels_operations/get-places?latitude=&longitude=
+        MOCK-->>LS: places; keep names where type == CITY
+      end
+
+      Note over LS: Sort and dedupe city list
+    end
+
+    LS-->>NA: JSON array of city strings
+
+    Note over NA: LangChain4j + Claude Haiku: classify each article; topics + AI-extracted locations
+    NA-->>PROB: 200 ClassifiedNewsResponse
+  end
+
+  PROB->>SM: GET /api/ship-mobility
+
+  rect rgb(240, 250, 248)
+    Note over SM,MOCK: ship-mobility-service: fleet rows + place names near each vessel
+    SM->>ENT: GET /api/v1/shipments
+    ENT-->>SM: ShipmentDto[]
+
+    alt no active (non-DELIVERED) ship names
+      SM-->>PROB: ShipMobilityResponse(empty)
+    else at least one ship to track
+      SM->>MOCK: GET /api/v1/vessels/by-names?names=...
+      MOCK-->>SM: VesselDto[]
+
+      loop each vessel with parseable lat/lon
+        SM->>MOCK: POST /api/vessels_operations/get-vessels-by-area?latitude=&longitude=&circle_radius= (km, from config)
+        MOCK-->>SM: VesselDto[] in radius (side effect / context for mock)
+
+        SM->>MOCK: POST /api/vessels_operations/get-places?latitude=&longitude=&circle_radius= (km)
+        MOCK-->>SM: PlaceDto[] → names for ShipMobilityItem.cities
+      end
+
+      SM-->>PROB: ShipMobilityResponse (ships + global city list)
     end
   end
-  RA-->>SCR: ReasoningReportResponse
 
-  SCR->>ENT: GET /api/v1/plants
-  ENT-->>SCR: plant summaries
-  loop each plant id from list
-    SCR->>ENT: GET /api/v1/plants/{id}
-    ENT-->>SCR: plant detail (suppliers, coords, …)
+  Note over PROB: ProbabilityService: match article locations to ship cities + speed weights; apply Gulf floor; build ProbabilityResponse
+
+  Note over PROB: ProbabilityPushService: latest.set(response); queue.offer; consumer convertAndSend /topic/probability
+
+  PROB-->>UI: STOMP broadcast to subscribers (topic /topic/probability, endpoint /ws)
+
+  User->>UI: open dashboard (any time)
+  UI->>PROB: GET /api/probability
+  alt snapshot exists
+    PROB-->>UI: 200 ProbabilityResponse JSON
+  else no successful run yet
+    PROB-->>UI: 503 { "message": "No probability data yet..." }
   end
-  Note over SCR: SupplyChainRiskAnalyzer.analyze(...)
-  SCR-->>UI: SupplyChainRiskReportResponse (JSON)
-  UI-->>User: render risk panel
 ```
 
-**Reading the diagram:** **reasoning-agent** orchestrates **news**, **locations**, and **vessel** agents and reads **mockServices** directly where needed. **supply-chain-risk-agent** composes **enterpriseservice** master data with a **reasoning** report for portfolio-style risk. **frontend** (and the optional **reasoning-ui** test harness) call **agents** over HTTP — not **mockServices** or **enterpriseservice** directly. **enterpriseservice** uses **mockServices** for orchestration snapshots (e.g. news/vessels near coordinates).
+**Reading the diagram:** The **UI** does not call **news-agent**, **location-service**, or **ship-mobility-service** directly in the default setup; it uses **probability-service** and **enterpriseservice** through the dev proxy (see [`frontend/vite.config.ts`](../frontend/vite.config.ts)).
 
 ---
 
-This folder holds **Spring Boot agents** that sit on top of the shared mock APIs in [`../mockServices`](../mockServices) (`mockServices`). Each agent calls HTTP endpoints on the mock service and exposes its own JSON API.
+This folder holds **Spring Boot agents** that integrate with [`../mockServices`](../mockServices) and [`../enterpriseservice`](../enterpriseservice).
 
-**Deployment:** The repo root includes an SAP **MTA** descriptor — [`../mta.yaml`](../mta.yaml) and [`../MTA.md`](../MTA.md) (build with `mbt build` → `.mtar`).
+**Active Maven modules** (each has a `pom.xml`): **`news-agent`**, **`location-service`**, **`ship-mobility-service`**, **`probability-service`**.
 
-**Mock service base URL (default):** `http://localhost:8082` — see `mockServices/src/main/resources/application.properties`. Large mock datasets (`mock_articles.json`, `mock_places.json`, `mock_vessels.json`) can be regenerated from the repository root with:
+**Leftover directories (not buildable here):** `locations-agent/`, `vessel-agent/`, `supply-chain-risk-agent/` (typically only `target/` or stale artifacts), and `reasoning-agent/` without a top-level `pom.xml`. Treat them as **removed or legacy**; do not use the old port map **8091–8094** for this branch.
 
-**Articles API:** `POST /api/v1/article/getArticles` returns the same JSON shape as `mock_articles.json`, but each response **mutates** titles, bodies, timestamps, sentiment, and relevance using **slow drift plus gentle per-second motion** so rapid polling shows gradual change. Places and vessels remain static JSON unless you regenerate files.
+**Deployment:** Repo root includes an SAP **MTA** descriptor — [`../mta.yaml`](../mta.yaml) and [`../MTA.md`](../MTA.md) (`mbt build` → `.mtar`). For local/container runs, prefer [`../docker-compose.yml`](../docker-compose.yml).
+
+**Mock base URL (default):** `http://localhost:8082` — see `mockServices/src/main/resources/application.properties`. Regenerate large JSON fixtures from the repo root:
 
 ```bash
 python3 mockServices/scripts/generate_mock_data.py
 ```
 
-| Agent | Port | Package | Role |
-|-------|------|---------|------|
-| **news-agent** | **8090** | `com.hackathon.newsagent` | Classify news into supply-chain risk categories (multi-label, lexicon). |
-| **locations-agent** | **8091** | `com.hackathon.locationsagent` | Resolve **place names → coordinates** (catalog + fuzzy matching). |
-| **vessel-agent** | **8092** | `com.hackathon.vesselagent` | List **vessels near a point** using lat/lon + **radius (km)**. |
-| **reasoning-agent** | **8093** | `com.hackathon.reasoningagent` | **Orchestrates** news → locations → vessels: classified news, geo resolution, nearby ships. |
-| **supply-chain-risk-agent** | **8094** | `com.hackathon.supplychainrisk` | **Portfolio risk:** enterprise plants/suppliers + reasoning report (exposure by proximity & text). |
+**Articles API:** `POST /api/v1/article/getArticles` can return the same schema as `mock_articles.json` with **time-varying** fields when [`MockArticlesDynamicService`](../mockServices/src/main/java/com/mockservice/service/MockArticlesDynamicService.java) is enabled in mockServices (demo-friendly drift).
 
-**Mock endpoints used**
+| Service | Port | Package | Role |
+|---------|------|---------|------|
+| **news-agent** | **8090** | `com.hackathon.newsagent` | **LangChain4j + Claude Haiku:** classify mock articles; uses **location-service** for city context. |
+| **location-service** | **8095** | `com.hackathon.locationservice` | **Aggregates** unique cities / summary from **enterprise** + **mock** (plants, suppliers, vessels). |
+| **ship-mobility-service** | **8096** | `com.hackathon.shipmobility` | **Fleet + geography** context from **enterprise** + **mock** for probability scoring. |
+| **probability-service** | **8097** | `com.hackathon.probability` | Combines **news-agent** + **ship-mobility**; **REST** snapshot + **WebSocket** push. |
+
+**Mock endpoints used (indirectly via agents)**
 
 | Mock path | Method | Used by |
 |-----------|--------|---------|
 | `/api/v1/article/getArticles` | `POST` | news-agent |
-| `/api/v1/places` | `GET` | locations-agent, reasoning-agent (mention scan) |
-| `/api/vessels_operations/get-vessels-by-area` | `POST` | vessel-agent (`latitude`, `longitude`, `circle_radius` in km) |
+| `/api/v1/places` | `GET` | location-service, ship-mobility-service |
+| `/api/vessels_operations/get-vessels-by-area` | `POST` | location-service, ship-mobility-service |
 
 ---
 
 ## Shared prerequisites
 
 - **Java 21**
-- **Maven** (or `./mvnw` from `mockServices` when the wrapper is configured)
+- **Maven**
+- **Node.js** + **npm** (for `frontend/`)
+- **Anthropic API key** for news-agent (`ANTHROPIC_API_KEY`)
 
-### Run the mock API first
-
-From the repository root:
+### Run mock + enterprise first
 
 ```bash
 cd mockServices && mvn spring-boot:run
+cd enterpriseservice && mvn spring-boot:run
 ```
 
 ### Port map (local defaults)
 
 | Port | Process |
 |------|---------|
-| **8082** | `mockServices` (news, places catalog, vessels, places-by-area, …) |
-| **8085** | [`enterpriseservice`](../enterpriseservice) (plants, suppliers, shipments — in-memory H2) |
+| **8082** | `mockServices` |
+| **8085** | [`enterpriseservice`](../enterpriseservice) |
 | **8090** | news-agent |
-| **8091** | locations-agent |
-| **8092** | vessel-agent |
-| **8093** | reasoning-agent |
-| **8094** | supply-chain-risk-agent |
-| **5173** | [`frontend`](../frontend) (main UI; Vite default port) |
-| **5173** | [`reasoning-ui`](../reasoning-ui) (optional **test harness** for agent APIs — same default port; run only one of `frontend` / `reasoning-ui` or use a different port, e.g. `npm run dev -- --port 5174`) |
+| **8095** | location-service |
+| **8096** | ship-mobility-service |
+| **8097** | probability-service |
+| **5173** | [`frontend`](../frontend) Vite dev (`npm run dev`) |
+| **3000** | `frontend` via Docker Compose (mapped to container **8080**) |
 
-Start each agent you need in **separate terminals**. **reasoning-agent** depends on **mockServices** plus **news-agent**, **locations-agent**, and **vessel-agent** all being up before it. **supply-chain-risk-agent** additionally needs **[`enterpriseservice`](../enterpriseservice)** on **8085** and **reasoning-agent** on **8093**.
+### Docker Compose (full stack)
 
-### Run the full stack (smoke test)
+From the repository root (requires **`ANTHROPIC_API_KEY`** in the environment for news-agent):
 
-Use **separate terminals** from the repo root. Start **mockServices** first; wait until **8082** is healthy (e.g. `curl -sf http://localhost:8082/api/v1/places`). Then start **news**, **locations**, **vessel**, **reasoning**. For the **supply-chain** UI panel, also start **enterpriseservice** (8085) and **supply-chain-risk-agent** (8094).
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+docker compose up --build
+```
+
+- UI: **http://localhost:3000**
+- Internal **mockservices** has **no** host port; **8090, 8095, 8096, 8097, 8085** are published as in [`docker-compose.yml`](../docker-compose.yml).
+
+### Run the full stack locally (smoke test)
+
+Use **separate terminals**. Order matters: **mock → enterprise → location-service → ship-mobility → news-agent → probability-service → frontend**.
 
 ```bash
 cd mockServices && mvn spring-boot:run
 cd enterpriseservice && mvn spring-boot:run
+cd agents/location-service && mvn spring-boot:run
+cd agents/ship-mobility-service && mvn spring-boot:run
 cd agents/news-agent && mvn spring-boot:run
-cd agents/locations-agent && mvn spring-boot:run
-cd agents/vessel-agent && mvn spring-boot:run
-cd agents/reasoning-agent && mvn spring-boot:run
-cd agents/supply-chain-risk-agent && mvn spring-boot:run
+cd agents/probability-service && mvn spring-boot:run
 cd frontend && npm install && npm run dev
 ```
-
-Optional — **agent test harness** only (not the product UI): `cd reasoning-ui && npm install && npm run dev` (stop **frontend** first or use another port).
 
 Quick checks:
 
 ```bash
 curl -sf "http://localhost:8082/api/v1/places" | head -c 80 && echo
+curl -sf "http://localhost:8085/api/v1/plants" | head -c 80 && echo
+curl -sf "http://localhost:8095/api/location/cities" | head -c 80 && echo
+curl -sf "http://localhost:8096/api/ship-mobility" | head -c 80 && echo
 curl -sf "http://localhost:8090/api/agent/classified-news" | head -c 80 && echo
-curl -sf "http://localhost:8091/api/agent/resolve-location?name=Dubai%20City" | head -c 80 && echo
-curl -sf "http://localhost:8092/api/agent/vessels-nearby?latitude=45.05&longitude=-8.9&radiusNm=27" | head -c 80 && echo
-curl -sf "http://localhost:8093/api/agent/reasoning-report" | head -c 80 && echo
-curl -sf "http://localhost:8094/api/agent/supply-chain-risk-report" | head -c 80 && echo
+curl -sf "http://localhost:8097/api/probability" | head -c 80 && echo
 ```
-
-**reasoning-agent note:** `catalogMentions` is filled only when a **catalog place name** appears in an article’s **title or body** (substring match). Many mock articles mention cities in the title but not the full catalog string in the body, so **zero mentions** for an article is normal. Vessel lists can be **empty** if no mock ships fall within `reasoning.pipeline.search-radius-nm` (nautical miles) of a resolved point.
-
-**Units:** Vessel search radii are in **international nautical miles** (NM). **1 NM = 1852 m = 1.852 km** exactly. Agents convert NM → km when calling the mock Haversine API; that factor is fixed, so **no external conversion API is required**. For general-purpose or non-SI unit handling in production, **UCUM** ([ucum.org](https://ucum.org)) and Java **javax.measure** / **Indriya** are common choices.
 
 ---
 
 ## news-agent
 
-Supply-chain **news classification** using **LangChain4j** and **Claude Haiku**: pulls articles from the mock news API, fetches cities from location-service, and classifies each article via AI into supply-chain risk topics. Classification runs **concurrently** for all articles. Returns `title`, `locations` (array of where the news is happening, AI-extracted from body), and `topics` per article.
+Supply-chain **news classification** using **LangChain4j** and **Claude Haiku**: loads articles from the mock API, pulls **city context** from **location-service**, classifies each article (concurrent workers), returns **`topics`**, **`locations`**, and related fields per article.
 
 ### Run
 
@@ -275,7 +326,7 @@ Supply-chain **news classification** using **LangChain4j** and **Claude Haiku**:
 cd agents/news-agent && mvn spring-boot:run
 ```
 
-**Required:** `ANTHROPIC_API_KEY` environment variable for Claude Haiku.
+**Required:** `ANTHROPIC_API_KEY`.
 
 ### Configuration
 
@@ -283,26 +334,21 @@ cd agents/news-agent && mvn spring-boot:run
 |----------|---------|---------|
 | `news.mock-services-url` | `http://localhost:8082` | Mock service base URL |
 | `news.location-service-url` | `http://localhost:8095` | Location service base URL |
+| `news.classification-threads` | `2` | Concurrency (rate-limit friendly) |
 | `server.port` | `8090` | Agent port |
-| `ANTHROPIC_API_KEY` | (env) | Anthropic API key for Claude Haiku |
+| `ANTHROPIC_API_KEY` | (env) | Anthropic API key |
 
 ### HTTP API
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/agent/classified-news` | Classify all articles from the news API |
+| `GET` | `/api/agent/classified-news` | Classify all articles from the mock news API |
 
 ```bash
 curl -s "http://localhost:8090/api/agent/classified-news" | python3 -m json.tool
 ```
 
-If the news API or location service is unreachable: **503** with `{ "message": "..." }`.
-
-### Response (summary)
-
-- `articleCount`, `articles[]` with `uri`, `title`, **`locations`**, **`topics`**
-- `locations`: array of where the news is happening (AI-extracted from article body; multiple per article)
-- `topics`: one or more of: Geopolitical Unrest & Security, Trade Policy and Tariffs, Environmental & Natural Disasters, Infrastructure & Logistics Disruptions, Raw Material & Resource Scarcity, Technology & Cybersecurity, Corporate Restructuring
+If mock news or location-service is unreachable: **503** with `{ "message": "..." }`.
 
 ### Build
 
@@ -312,233 +358,129 @@ cd agents/news-agent && mvn -q compile
 
 ---
 
-## locations-agent
+## location-service
 
-**Location name → coordinates** using the mock catalog (`GET /api/v1/places`). Matching: **exact** name, **substring**, **token overlap** (Jaccard), **Levenshtein**-style fuzzy score. Responses include `matchKind` and `confidence` (0–1).
+Aggregates **enterprise** plants/suppliers and **mock** vessels/places to produce **unique cities** and a **location summary** for downstream AI and analytics.
 
 ### Run
 
 ```bash
-cd agents/locations-agent && mvn spring-boot:run
+cd agents/location-service && mvn spring-boot:run
 ```
 
 ### Configuration
 
 | Property | Default | Purpose |
 |----------|---------|---------|
-| `locations.api.base-url` | `http://localhost:8082` | Mock service base URL |
-| `locations.api.catalog-path` | `/api/v1/places` | Catalog (`GET`) |
-| `server.port` | `8091` | Agent port |
-| `locations.resolve.min-confidence` | `0.55` | Minimum score for a non-exact match |
+| `location-service.enterprise-base-url` | `http://localhost:8085` | Enterprise service |
+| `location-service.mock-services-base-url` | `http://localhost:8082` | Mock service |
+| `location-service.nearby-radius-km` | `200` | Haversine radius for “nearby” context |
+| `server.port` | `8095` | Service port |
 
 ### HTTP API
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/agent/resolve-location?name=...` | Single lookup; **404** if no match |
-| `POST` | `/api/agent/resolve-locations` | Body: `{ "queries": ["…"] }` — `resolved` may be `null` |
-| `POST` | `/api/agent/refresh-catalog` | Reload catalog from the mock service |
+| `GET` | `/api/location/cities` | Unique city names |
+| `GET` | `/api/location/summary` | Cities + structured plant/supplier summary |
 
 ```bash
-curl -s "http://localhost:8091/api/agent/resolve-location?name=Dubai%20City"
-curl -s "http://localhost:8091/api/agent/resolve-locations" \
-  -H "Content-Type: application/json" \
-  -d '{"queries":["Strait of Hormuz","Panama","NowhereLandXYZ123"]}'
+curl -s "http://localhost:8095/api/location/cities" | python3 -m json.tool
+curl -s "http://localhost:8095/api/location/summary" | python3 -m json.tool
 ```
-
-Sample match:
-
-```json
-{
-  "query": "Dubai City",
-  "matchedName": "Dubai City",
-  "placeType": "CITY",
-  "latitude": 25.26,
-  "longitude": 55.3,
-  "matchKind": "EXACT",
-  "confidence": 1.0
-}
-```
-
-If the catalog cannot be loaded: **503** with `{ "message": "..." }`.
 
 ### Build
 
 ```bash
-cd agents/locations-agent && mvn -q compile
+cd agents/location-service && mvn -q compile
 ```
 
 ---
 
-## vessel-agent
+## ship-mobility-service
 
-**Vessels near a point**: send **WGS84** `latitude` / `longitude` and a **search radius in km**. The agent calls `POST .../get-vessels-by-area` with `circle_radius` set to that radius; the mock service keeps vessels whose positions are within the Haversine distance (km).
-
-Vessel positions in JSON are **strings** (`latitude` / `longitude`), consistent with the mock API.
+Builds a **ship mobility** snapshot from **enterprise** and **mock** data (vessels, places) for use by **probability-service**.
 
 ### Run
 
 ```bash
-cd agents/vessel-agent && mvn spring-boot:run
+cd agents/ship-mobility-service && mvn spring-boot:run
 ```
 
 ### Configuration
 
 | Property | Default | Purpose |
 |----------|---------|---------|
-| `vessels.api.base-url` | `http://localhost:8082` | Mock service base URL |
-| `vessels.api.path` | `/api/vessels_operations/get-vessels-by-area` | Vessel search (`POST`) |
-| `server.port` | `8092` | Agent port |
-| `vessels.search.default-radius-nm` | `54` | Default radius in **nautical miles** when `radiusNm` is omitted (~100 km) |
+| `ship-mobility.enterprise-base-url` | `http://localhost:8085` | Enterprise service |
+| `ship-mobility.mock-services-base-url` | `http://localhost:8082` | Mock service |
+| `ship-mobility.nearby-radius-km` | `200` | Radius for nearby places / area queries |
+| `server.port` | `8096` | Service port |
 
 ### HTTP API
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/agent/vessels-nearby` | Query: `latitude`, `longitude`, optional `radiusNm` (**nautical miles**) |
+| `GET` | `/api/ship-mobility` | Current mobility snapshot (`ShipMobilityResponse`) |
 
 ```bash
-curl -s "http://localhost:8092/api/agent/vessels-nearby?latitude=45.05&longitude=-8.9&radiusNm=27"
+curl -s "http://localhost:8096/api/ship-mobility" | python3 -m json.tool
 ```
-
-Example response (truncated):
-
-```json
-{
-  "latitude": 45.05,
-  "longitude": -8.9,
-  "radiusNm": 27.0,
-  "vesselCount": 4,
-  "vessels": [
-    {
-      "mmsi": "245297000",
-      "name": "ELBEBORG",
-      "latitude": "45.078705",
-      "longitude": "-8.9553804",
-      "speed": "110",
-      "course": "185",
-      "heading": "184"
-    }
-  ]
-}
-```
-
-Invalid coordinates or non-positive `radiusNm`: **400**. Mock vessel API unreachable: **503** with `{ "message": "..." }`.
 
 ### Build
 
 ```bash
-cd agents/vessel-agent && mvn -q compile
+cd agents/ship-mobility-service && mvn -q compile
 ```
 
 ---
 
-## reasoning-agent
+## probability-service
 
-**End-to-end pipeline** (no extra ML here):
+Fuses **news-agent** output with **ship-mobility-service** to produce **probability** items (percent scores, article metadata). Exposes:
 
-1. **news-agent** — `GET /api/agent/classified-news` (articles with **title**, **body**, risk **categories**).
-2. **Place mention scan** — loads `GET /api/v1/places` (mock) and finds catalog **place names** that appear as substrings in title + body (longest names checked first to reduce noise).
-3. **locations-agent** — for each distinct mention, `GET /api/agent/resolve-location?name=…` to obtain coordinates.
-4. **vessel-agent** — for each **unique** resolved coordinate, `GET /api/agent/vessels-nearby` with `reasoning.pipeline.search-radius-nm` (nautical miles; deduplicates multiple place names that map to the same point).
+- **`GET /api/probability`** — last computed snapshot (**503** if none yet).
+- **WebSocket (STOMP)** — SockJS endpoint **`/ws`**, broker topic **`/topic/probability`** (see [`WebSocketConfig`](probability-service/src/main/java/com/hackathon/probability/config/WebSocketConfig.java)).
 
-Requires **mockServices** plus **news**, **locations**, and **vessel** agents running. Returns **503** if any upstream HTTP call fails.
+Recompute cadence is **scheduled** in [`ProbabilityPushService`](probability-service/src/main/java/com/hackathon/probability/service/ProbabilityPushService.java) (news-agent AI calls can be slow; adjust there if needed).
 
 ### Run
 
+Requires **8090** (news-agent) and **8096** (ship-mobility-service), with **8082**, **8085**, **8095** available upstream.
+
 ```bash
-cd agents/reasoning-agent && mvn spring-boot:run
+cd agents/probability-service && mvn spring-boot:run
 ```
 
 ### Configuration
 
 | Property | Default | Purpose |
 |----------|---------|---------|
-| `reasoning.upstream.news-agent-base-url` | `http://localhost:8090` | news-agent |
-| `reasoning.upstream.locations-agent-base-url` | `http://localhost:8091` | locations-agent |
-| `reasoning.upstream.vessel-agent-base-url` | `http://localhost:8092` | vessel-agent |
-| `reasoning.upstream.places-catalog-url` | `http://localhost:8082/api/v1/places` | Mock catalog for substring mention detection |
-| `reasoning.pipeline.search-radius-nm` | `54` | Default vessel search radius (**NM**) when `?radiusNm` is omitted (~100 km) |
-| `reasoning.pipeline.min-radius-nm` | `1` | Minimum allowed `radiusNm` |
-| `reasoning.pipeline.max-radius-nm` | `3000` | Maximum allowed `radiusNm` |
-| `server.port` | `8093` | reasoning-agent port |
+| `probability.news-agent-url` | `http://localhost:8090` | news-agent base URL |
+| `probability.ship-mobility-url` | `http://localhost:8096` | ship-mobility-service base URL |
+| `probability.news-agent-timeout-seconds` | `120` | HTTP timeout for classified-news |
+| `probability.weight-speed-low` | `3` | Scoring weight |
+| `probability.weight-location-match` | `5` | Scoring weight |
+| `probability.weight-location-and-speed` | `8` | Scoring weight |
+| `probability.speed-threshold-kn` | `5` | “Low speed” threshold |
+| `probability.max-score` | `80` | Normalization cap |
+| `probability.gulf-locations` | (list) | Region keywords for minimum risk floor |
+| `probability.gulf-min-percent` | `75` | Minimum percent for Gulf-tagged articles |
+| `server.port` | `8097` | Service port |
 
 ### HTTP API
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/agent/reasoning-report` | Full pipeline JSON |
-| `GET` | `/api/agent/reasoning-report?radiusNm=100` | Same, with vessel search radius in **nautical miles** (validated against min/max; forwarded to vessel-agent) |
+| `GET` | `/api/probability` | Latest `ProbabilityResponse` JSON |
 
 ```bash
-curl -s "http://localhost:8093/api/agent/reasoning-report" | python3 -m json.tool
-curl -s "http://localhost:8093/api/agent/reasoning-report?radiusNm=100" | python3 -m json.tool
+curl -s "http://localhost:8097/api/probability" | python3 -m json.tool
 ```
-
-The response includes **`searchRadiusNm`**: the radius in **NM** used for vessel lookups on that run. Each item in `articles[]` includes `classified` (same fields as news-agent, including **`body`**), **`categoryRisks`** (per news category: composite **risk factor** 0–1 plus **rationale**), `catalogMentions`, `resolvedLocations`, and `vesselsNearLocations` (per distinct coordinate used for a vessel search; each block echoes the same radius in **`radiusNm`**).
-
-### Web UI (React)
-
-The main app is [`../frontend`](../frontend) (Riscon dashboard). To exercise this agent from the browser, configure your API base URL (or a dev proxy) to **`http://localhost:8093`**.
-
-For **manual testing** only, [`../reasoning-ui`](../reasoning-ui) is a thin Vite app that **proxies** `/api` to the reasoning agent:
-
-```bash
-cd reasoning-ui && npm install && npm run dev
-```
-
-Open **http://localhost:5173** (do not run alongside **frontend** on the same port, or use `--port`). For `npm run preview` after a production build, either set **`VITE_API_BASE=http://localhost:8093`** when building, or rely on **CORS** (allowed for localhost ports **5173** and **4173** on the reasoning agent).
 
 ### Build
 
 ```bash
-cd agents/reasoning-agent && mvn -q compile
-```
-
----
-
-## supply-chain-risk-agent
-
-Combines **[`enterpriseservice`](../enterpriseservice)** master data with the **reasoning-agent** report:
-
-1. **`GET /api/v1/plants`** then **`GET /api/v1/plants/{id}`** — each plant with linked **suppliers** (coordinates and names when present).
-2. **`GET /api/agent/reasoning-report`** on reasoning-agent (optional **`?radiusNm=`**, forwarded as-is).
-3. **Risk model:** for each reasoning article, takes the **max per-category `riskFactor`** from `categoryRisks`. A plant or supplier is **exposed** if a resolved news location is within **`supplychain-risk.proximity-radius-km`** (default **500 km**) of its lat/lon, or if **catalog mentions** / resolved place **text** overlaps the plant or supplier name/location. **Plant risk** is the max exposure score across the plant site and its suppliers; **portfolio risk** is the max across plants.
-
-4. **Disturbance certainty:** for each exposed site, blends that **category risk** with **maritime imminence** from `vesselsNearLocations`: shortest **ETA (hours)** = great-circle distance from each vessel position to the site ÷ speed (**kn** → km/h, with a heuristic for mock speeds stored as tenths of knots). **Imminence** rises as ETA shortens (48 h half-life). **Disturbance certainty** ≈ `risk × (0.55 + 0.45 × imminence)` (capped at 1). Without vessel speed/position, imminence falls back to a weaker signal from vessel presence alone.
-
-Returns JSON: **`portfolioRiskScore`**, **`portfolioDisturbanceCertainty`**, **`portfolioDisturbanceRationale`**, **`portfolioEstimatedHoursToImpact`**, **`portfolioRationale`**, **`plants[]`** with per-plant and per-supplier **`disturbanceCertainty`**, **`estimatedHoursToImpact`**, **`riskScore`**, and **`signals`**.
-
-The optional **[`reasoning-ui`](../reasoning-ui)** test harness in dev uses **same-origin** `/api/...` and the Vite proxy: **`/api/agent/supply-chain-risk-report` → 8094** (listed **before** `/api` → 8093 so the longer path matches first). **`frontend`** should call agents with explicit base URLs or your platform’s approuter. `vite preview` has no proxy — set **`VITE_SUPPLY_RISK_BASE=http://localhost:8094`** when building **reasoning-ui**, or rely on the UI fallback to 8094 for localhost:4173 (CORS on the agent). **`VITE_SUPPLY_RISK_BASE`** overrides the base URL when set.
-
-### Run
-
-Requires **8085** (enterprise) and **8093** (reasoning), with reasoning’s upstream stack running.
-
-```bash
-cd agents/supply-chain-risk-agent && mvn spring-boot:run
-```
-
-### Configuration
-
-| Property | Default | Purpose |
-|----------|---------|---------|
-| `supplychain-risk.enterprise-base-url` | `http://localhost:8085` | Enterprise service |
-| `supplychain-risk.reasoning-base-url` | `http://localhost:8093` | Reasoning agent |
-| `supplychain-risk.proximity-radius-km` | `500` | Great-circle distance threshold for “near” a news location |
-| `supplychain-risk.http-timeout-ms` | `120000` | RestClient read/connect budget |
-| `supplychain-risk.cache-ttl-ms` | `1000` | When &gt; `0`, repeat `GET` with the same `radiusNm` returns the last report for this many ms (faster UI after the news-agent pipeline refresh). Set `0` to disable. |
-| `server.port` | `8094` | This agent |
-
-### HTTP API
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/agent/supply-chain-risk-report` | Full report |
-| `GET` | `/api/agent/supply-chain-risk-report?radiusNm=100` | Same, forwarded to reasoning-agent for vessel radius |
-
-```bash
-curl -s "http://localhost:8094/api/agent/supply-chain-risk-report" | python3 -m json.tool
+cd agents/probability-service && mvn -q compile
 ```
 
 ---
@@ -550,17 +492,24 @@ agents/
 ├── readme.md
 ├── news-agent/
 │   ├── pom.xml
+│   ├── Dockerfile
 │   └── src/main/java/com/hackathon/newsagent/...
-├── locations-agent/
+├── location-service/
 │   ├── pom.xml
-│   └── src/main/java/com/hackathon/locationsagent/...
-├── vessel-agent/
+│   ├── Dockerfile
+│   └── src/main/java/com/hackathon/locationservice/...
+├── ship-mobility-service/
 │   ├── pom.xml
-│   └── src/main/java/com/hackathon/vesselagent/...
-├── reasoning-agent/
-│   ├── pom.xml
-│   └── src/main/java/com/hackathon/reasoningagent/...
-└── supply-chain-risk-agent/
+│   ├── Dockerfile
+│   └── src/main/java/com/hackathon/shipmobility/...
+└── probability-service/
     ├── pom.xml
-    └── src/main/java/com/hackathon/supplychainrisk/...
+    ├── Dockerfile
+    └── src/main/java/com/hackathon/probability/...
 ```
+
+---
+
+## Legacy stack (reference only)
+
+Older documentation and forks sometimes describe **locations-agent (8091)**, **vessel-agent (8092)**, **reasoning-agent (8093)**, and **supply-chain-risk-agent (8094)** with a **reasoning → simulation** UI proxy. That architecture is **not** what this branch builds: the **product UI** integrates via **enterpriseservice** + **probability-service** as above. If you need the previous orchestration agents, recover them from git history or another branch.
