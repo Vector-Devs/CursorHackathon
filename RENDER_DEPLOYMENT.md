@@ -33,7 +33,7 @@ Deploy the Riscon stack to Render using the Blueprint (Infrastructure as Code) i
 - **750 instance hours/month** total across all services
 - Services **spin down after ~15 minutes** of inactivity
 - **Cold start:** ~1 minute when a service wakes up
-- First request to a sleeping service may timeout; retry after it wakes
+- **502 on first request:** If you get 502 Bad Gateway, the backend may be waking. Wait ~1 minute and refresh. The frontend nginx has 3-minute proxy timeouts to tolerate cold starts.
 
 ## Service URLs
 
