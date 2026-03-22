@@ -53,6 +53,18 @@ export interface PlantSupplyRiskDto {
   suppliers: SupplierSupplyRiskDto[];
 }
 
+/** JSON from probability-service. */
+export interface ProbabilityItem {
+  title: string;
+  locations: string[];
+  probabilityPercent: number;
+}
+
+export interface ProbabilityResponse {
+  articleCount: number;
+  items: ProbabilityItem[];
+}
+
 export interface SupplyChainRiskReportResponse {
   portfolioRiskScore: number;
   portfolioDisturbanceCertainty: number;

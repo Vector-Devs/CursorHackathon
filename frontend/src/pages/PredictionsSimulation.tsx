@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useAsync } from '../hooks/useAsync';
+import { useProbabilityWebSocket } from '../hooks/useProbabilityWebSocket';
 import { enterpriseApi, SIMULATION_REPORT_POLL_MS, simulationApi } from '../api/client';
 import { Layout } from '../components/Layout';
 import { HeaderBar } from '../components/HeaderBar';
@@ -7,6 +8,14 @@ import { KPICard } from '../components/KPICard';
 import { WorldMap } from '../components/WorldMap';
 import { DataModeToggle } from '../components/DataModeToggle';
 import { EventProbabilityCard } from '../components/EventProbabilityCard';
+import type { ProbabilityItem } from '../api/types';
+
+function badgeForProbability(pct: number): { badge: string; badgeColor: string } {
+  if (pct > 70) return { badge: 'CRITICAL', badgeColor: 'var(--error)' };
+  if (pct >= 40) return { badge: 'HIGH', badgeColor: 'var(--warning)' };
+  if (pct >= 20) return { badge: 'MEDIUM', badgeColor: '#F59E0B' };
+  return { badge: 'LOW', badgeColor: 'var(--accent)' };
+}
 
 function badgeForRisk(r: number): { badge: string; badgeColor: string } {
   if (r >= 0.5) return { badge: 'CRITICAL', badgeColor: 'var(--error)' };
@@ -22,6 +31,7 @@ export function PredictionsSimulation() {
     () => enterpriseApi.listPlants(),
     []
   );
+  const { data: probability, loading: loadingProbability, error: probabilityError } = useProbabilityWebSocket();
   const { data: risk, loading: loadingRisk, error: riskError } = useAsync(
     () => simulationApi.supplyChainRiskReport(),
     [],
@@ -29,8 +39,31 @@ export function PredictionsSimulation() {
   );
 
   const loading = loadingPlants || (loadingRisk && risk == null);
-  const error = plantsError ?? riskError;
+  const error = plantsError ?? riskError ?? probabilityError;
   const enterprisePlantTotal = enterprisePlants?.length ?? 0;
+
+  const probabilityCards = useMemo(() => {
+    const items: ProbabilityItem[] = probability?.items ?? [];
+    return [...items]
+      .filter((i) => i.probabilityPercent > 0)
+      .sort((a, b) => b.probabilityPercent - a.probabilityPercent)
+      .slice(0, 8)
+      .map((item, idx) => {
+        const { badge, badgeColor } = badgeForProbability(item.probabilityPercent);
+        const locStr = item.locations?.length
+          ? `Locations: ${item.locations.join(', ')}. `
+          : '';
+        const description = `${locStr}Event probability based on classified news and ship mobility data.`;
+        return {
+          key: `prob-${idx}-${item.title?.slice(0, 30) ?? ''}`,
+          badge,
+          badgeColor,
+          percentage: item.probabilityPercent,
+          title: item.title || 'Unknown event',
+          description,
+        };
+      });
+  }, [probability]);
 
   const cards = useMemo(() => {
     const plants = risk?.plants ?? [];
@@ -62,7 +95,7 @@ export function PredictionsSimulation() {
     <Layout>
       <HeaderBar
         title="PREDICTIONS & SIMULATION"
-        subtitle="Simulation agent (supply-chain-risk) + enterpriseservice. No direct reasoning-agent calls from the UI."
+        subtitle="AI-powered event probability analysis and supply chain scenario modeling."
         showLive={false}
         rightContent={<DataModeToggle value={mode} onChange={setMode} />}
       />
@@ -105,7 +138,7 @@ export function PredictionsSimulation() {
                 color: 'var(--text-tertiary)',
               }}
             >
-              {mode === 'simulation' ? 'SIMULATION VIEW' : 'PLANT RISK SIGNALS'}
+              EVENT PROBABILITY PREDICTIONS
             </span>
             <div
               style={{
@@ -134,10 +167,63 @@ export function PredictionsSimulation() {
                   color: 'var(--accent)',
                 }}
               >
-                SIMULATION AGENT
+                AI GENERATED
               </span>
             </div>
           </div>
+          <div
+            style={{
+              display: 'flex',
+              gap: 16,
+              flexWrap: 'nowrap',
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              paddingBottom: 8,
+            }}
+          >
+            {loadingProbability && (
+              <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                Loading event probabilities…
+              </span>
+            )}
+            {!loadingProbability &&
+              probabilityCards.map((card) => (
+                <div key={card.key} style={{ flexShrink: 0, minWidth: 260 }}>
+                  <EventProbabilityCard
+                    badge={card.badge}
+                    badgeColor={card.badgeColor}
+                    percentage={card.percentage}
+                    title={card.title}
+                    description={card.description}
+                  />
+                </div>
+              ))}
+            {!loadingProbability && probabilityCards.length === 0 && !probabilityError && (
+              <span style={{ color: 'var(--text-secondary)' }}>
+                No event predictions — probability-service aggregates news-agent and ship-mobility.
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+          }}
+        >
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: 2,
+              color: 'var(--text-tertiary)',
+            }}
+          >
+            {mode === 'simulation' ? 'SIMULATION VIEW' : 'PLANT RISK SIGNALS'}
+          </span>
           <div
             style={{
               display: 'flex',
@@ -176,6 +262,13 @@ export function PredictionsSimulation() {
             flexWrap: 'wrap',
           }}
         >
+          <KPICard
+            label="EVENT PREDICTIONS"
+            value={loadingProbability ? '…' : probability?.articleCount ?? 0}
+            valueColor="primary"
+            subtext="from probability-service"
+            subtextColor="primary"
+          />
           <KPICard
             label="ARTICLES (IN SIMULATION RUN)"
             value={loading ? '…' : risk?.reasoningArticleCount ?? 0}

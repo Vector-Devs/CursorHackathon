@@ -4,6 +4,30 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    # Proxy WebSocket to probability-service
+    location /ws {
+        proxy_pass ${PROBABILITY_SERVICE_URL};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 86400;
+    }
+
+    # Proxy probability API to probability-service (REST fallback)
+    location /api/probability {
+        proxy_pass ${PROBABILITY_SERVICE_URL};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 120s;
+    }
+
     # Proxy API calls to enterprise service
     location /api/ {
         proxy_pass ${API_BACKEND_URL};

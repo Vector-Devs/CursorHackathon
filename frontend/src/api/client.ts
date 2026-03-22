@@ -1,4 +1,4 @@
-import type { Plant, Supplier, Shipment, SupplyChainRiskReportResponse } from './types';
+import type { Plant, Supplier, Shipment, SupplyChainRiskReportResponse, ProbabilityResponse } from './types';
 
 async function json<T>(path: string): Promise<T> {
   const res = await fetch(path);
@@ -14,6 +14,14 @@ export const enterpriseApi = {
   listPlants: () => json<Plant[]>('/api/v1/plants'),
   listSuppliers: () => json<Supplier[]>('/api/v1/suppliers'),
   listShipments: () => json<Shipment[]>('/api/v1/shipments'),
+};
+
+/**
+ * Event probability — probability-service (:8097).
+ * Pushed via WebSocket; REST fallback returns cached value.
+ */
+export const probabilityApi = {
+  getProbabilities: () => json<ProbabilityResponse>('/api/probability'),
 };
 
 /**

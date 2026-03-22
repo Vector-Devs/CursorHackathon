@@ -35,10 +35,30 @@ public class ProbabilityService {
 	}
 
 	public ProbabilityResponse getProbabilities() {
-		ClassifiedNewsResponse newsResponse = newsAgentClient.getClassifiedNews();
-		ShipMobilityResponse mobilityResponse = shipMobilityClient.getShipMobility();
+		log.info("ProbabilityService: fetching classified news from news-agent (AI calls)");
+		ClassifiedNewsResponse newsResponse;
+		try {
+			newsResponse = newsAgentClient.getClassifiedNews();
+			int count = newsResponse != null && newsResponse.articles() != null ? newsResponse.articles().size() : 0;
+			log.info("ProbabilityService: news-agent OK, {} articles", count);
+		} catch (Exception e) {
+			log.error("ProbabilityService: news-agent FAILED (AI/rate-limit?) - {}", e.getMessage(), e);
+			throw e;
+		}
+
+		log.info("ProbabilityService: fetching ship mobility");
+		ShipMobilityResponse mobilityResponse;
+		try {
+			mobilityResponse = shipMobilityClient.getShipMobility();
+			int ships = mobilityResponse != null && mobilityResponse.ships() != null ? mobilityResponse.ships().size() : 0;
+			log.info("ProbabilityService: ship-mobility OK, {} ships", ships);
+		} catch (Exception e) {
+			log.error("ProbabilityService: ship-mobility FAILED - {}", e.getMessage(), e);
+			throw e;
+		}
 
 		if (newsResponse == null || newsResponse.articles() == null || newsResponse.articles().isEmpty()) {
+			log.info("ProbabilityService: no articles, returning empty");
 			return new ProbabilityResponse(0, List.of());
 		}
 
@@ -50,7 +70,9 @@ public class ProbabilityService {
 				.map(article -> computeProbability(article, ships))
 				.toList();
 
-		return new ProbabilityResponse(items.size(), items);
+		ProbabilityResponse result = new ProbabilityResponse(items.size(), items);
+		log.info("ProbabilityService: computed {} probability items", result.items().size());
+		return result;
 	}
 
 	private ProbabilityItem computeProbability(ClassifiedArticleDto article, List<ShipMobilityItem> ships) {

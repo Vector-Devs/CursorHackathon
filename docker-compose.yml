@@ -5,9 +5,13 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:8080"
+    depends_on:
+      - enterpriseservice
+      - probability-service
     environment:
       - PORT=8080
       - API_BACKEND_URL=http://enterpriseservice:8085
+      - PROBABILITY_SERVICE_URL=http://probability-service:8097
 
   location-service:
     build:

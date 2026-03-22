@@ -16,8 +16,8 @@ export function EventProbabilityCard({
   return (
     <div
       style={{
-        flex: 1,
-        minWidth: 0,
+        flex: '1 1 260px',
+        minWidth: 240,
         background: 'var(--bg-card)',
         borderRadius: 4,
         padding: 16,
@@ -43,7 +43,7 @@ export function EventProbabilityCard({
             padding: '2px 6px',
             borderRadius: 4,
             background: badgeColor,
-            color: '#0A0F1C',
+            color: '#fff',
           }}
         >
           {badge}

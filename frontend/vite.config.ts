@@ -8,6 +8,15 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
+      '/ws': {
+        target: 'http://localhost:8097',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/api/probability': {
+        target: 'http://localhost:8097',
+        changeOrigin: true,
+      },
       '/api/agent/supply-chain-risk-report': {
         target: 'http://localhost:8094',
         changeOrigin: true,
